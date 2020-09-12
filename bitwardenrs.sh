@@ -604,5 +604,3 @@ else
 echo "waiting for the keypress"
 fi
 done
-
-sudo reboot
