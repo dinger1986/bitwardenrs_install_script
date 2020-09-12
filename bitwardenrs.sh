@@ -168,8 +168,10 @@ cd ..
 
 #Create BitwardenRS folder and copy
 sudo mkdir /opt/bitwardenrs
-sudo cp -r ~/bitwarden_rs /opt/bitwardenrs
-sudo cp -r ~/web-vault /opt/bitwardenrs/
+sudo cp -r ~/bitwarden_rs/target/release/bitwarden_rs /opt/bitwardenrs
+#sudo mkdir /opt/bitwardenrs/web-vault
+sudo mv ~/web/build /opt/bitwardenrs/web-vault
+#sudo cp -r ~/web/build /opt/bitwardenrs/web-vault
 sudo mkdir /etc/bitwardenrs
 sudo chown ${username}:${username} -R /etc/bitwardenrs
 sudo chown ${username}:${username} -R /opt/bitwardenrs
@@ -221,15 +223,15 @@ bitwardenrsconf="$(cat << EOF
 # ICON_CACHE_NEGTTL=259200
 
 ## Web vault settings
-# WEB_VAULT_FOLDER=web-vault/
-# WEB_VAULT_ENABLED=true
+#WEB_VAULT_FOLDER=/opt/bitwardenrs/web-vault/
+#WEB_VAULT_ENABLED=true
 
 ## Enables websocket notifications
 WEBSOCKET_ENABLED=true
 
 ## Controls the WebSocket server address and port
 WEBSOCKET_ADDRESS=127.0.0.1
-# WEBSOCKET_PORT=3012
+#WEBSOCKET_PORT=3012
 
 ## Enable extended logging, which shows timestamps and targets in the logs
 # EXTENDED_LOGGING=true
@@ -241,7 +243,7 @@ WEBSOCKET_ADDRESS=127.0.0.1
 ## Logging to file
 ## This requires extended logging
 ## It's recommended to also set 'ROCKET_CLI_COLORS=off'
-LOG_FILE=/var/log/bitwardenrs/bitwardenrs.log
+LOG_FILE=/var/log/bitwardenrs/error.log
 
 ## Logging to Syslog
 ## This requires extended logging
@@ -253,7 +255,7 @@ LOG_FILE=/var/log/bitwardenrs/bitwardenrs.log
 ## Valid values are "trace", "debug", "info", "warn", "error" and "off"
 ## Setting it to "trace" or "debug" would also show logs for mounted 
 ## routes and static file, websocket and alive requests
-# LOG_LEVEL=Info
+LOG_LEVEL=Info
 
 ## Enable WAL for the DB
 ## Set to false to avoid enabling WAL during startup.
@@ -377,19 +379,19 @@ DOMAIN=https://${domain}
 ## Rocket specific settings, check Rocket documentation to learn more
 # ROCKET_ENV=staging
 ROCKET_ADDRESS=127.0.0.1
-# ROCKET_PORT=8000
+ROCKET_PORT=8000
 # ROCKET_TLS={certs="/path/to/certs.pem",key="/path/to/key.pem"}
 
 ## Mail specific settings, set SMTP_HOST and SMTP_FROM to enable the mail service.
 ## Note: if SMTP_USERNAME is specified, SMTP_PASSWORD is mandatory
-SMTP_HOST=smtp.${domain}
-SMTP_FROM=vault@${domain}
+#SMTP_HOST=smtp.${domain}
+#SMTP_FROM=vault@${domain}
 # SMTP_FROM_NAME=Bitwarden_RS
-SMTP_PORT=25
-SMTP_SSL=true
+#SMTP_PORT=25
+#SMTP_SSL=true
 # SMTP_EXPLICIT_TLS=true
-SMTP_USERNAME=vault@${domain}
-SMTP_PASSWORD=____PASSWORD____
+#SMTP_USERNAME=vault@${domain}
+#SMTP_PASSWORD=____PASSWORD____
 # SMTP_AUTH_MECHANISM="Plain"
 # SMTP_TIMEOUT=15
 
@@ -405,6 +407,7 @@ sudo chown ${username}:${username} /etc/bitwardenrs/bitwardenrs.conf
 
 sudo mkdir /var/log/bitwardenrs
 sudo chown -R ${username}:${username} /var/log/bitwardenrs
+touch /var/log/bitwardenrs/error.log
 
 #Stop nginx to remove file
 sudo service nginx stop
@@ -436,8 +439,8 @@ server {
     client_max_body_size 128M;
 
     ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${domain}privkey.pem;
-    ssl_dhparam /etc/ssl/certs/dhparam_4096.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;
+    ssl_dhparam /etc/ssl/certs/dhparam.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers on;
     ssl_ciphers "ECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH";
@@ -454,7 +457,7 @@ server {
 
     location / {
         proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host server_name;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -482,8 +485,10 @@ echo "${bitwardenrsconf2}" > /etc/nginx/sites-available/bitwardenrs
 sudo ln /etc/nginx/sites-available/bitwardenrs /etc/nginx/sites-enabled/bitwardenrs
 
 #Start nginx with SSL
-sudo su
-service nginx start
+sudo service nginx start
+
+sudo touch /etc/systemd/system/bitwarden.service
+sudo chown ${username}:${username} -R /etc/systemd/system/bitwarden.service
 
 #Set BitWarden Service File
 bitwardenservice="$(cat << EOF
@@ -500,8 +505,8 @@ Group=${username}
 
 EnvironmentFile=/etc/bitwardenrs/bitwardenrs.conf
 
-WorkingDirectory=/opt/bitwarden/
-ExecStart=/opt/bitwarden/bitwarden_rs
+WorkingDirectory=/opt/bitwardenrs/
+ExecStart=/opt/bitwardenrs/bitwarden_rs
 Restart=always
 
 # Isolate bitwarden_rs from the rest of the system
@@ -512,7 +517,7 @@ NoNewPrivileges=true
 ProtectSystem=strict
 
 # Only allow writes to the following directory
-ReadWritePaths=/opt/bitwarden/data/ /var/log/bitwardenrs.log
+ReadWritePaths=/opt/bitwardenrs/data/ /var/log/bitwardenrs/error.log
 
 # Set reasonable connection and process limits
 LimitNOFILE=1048576
@@ -525,12 +530,21 @@ EOF
 )"
 echo "${bitwardenservice}" > /etc/systemd/system/bitwarden.service
 
-systemctl daemon-reload
-systemctl enable bitwarden
-systemctl start bitwarden
+sudo systemctl daemon-reload
+sudo systemctl enable bitwarden
+sudo systemctl start bitwarden
 
 #####Fail2ban setup
-apt install -y fail2ban
+sudo apt install -y fail2ban
+
+sudo touch /etc/fail2ban/filter.d/bitwardenrs.conf
+sudo touch /etc/fail2ban/jail.d/bitwardenrs.local
+sudo touch /etc/fail2ban/filter.d/bitwardenrs-admin.conf
+sudo touch /etc/fail2ban/jail.d/bitwardenrs-admin.local
+sudo chown ${username}:${username} -R /etc/fail2ban/filter.d/bitwardenrs.conf
+sudo chown ${username}:${username} -R /etc/fail2ban/jail.d/bitwardenrs.local
+sudo chown ${username}:${username} -R /etc/fail2ban/filter.d/bitwardenrs-admin.conf
+sudo chown ${username}:${username} -R /etc/fail2ban/jail.d/bitwardenrs-admin.local
 
 #Set BitWarden fail2ban filter conf File
 bitwardenfail2banfilter="$(cat << EOF
@@ -551,7 +565,7 @@ enabled = true
 port = 80,443,8081
 filter = bitwarden
 action = iptables-allports[name=bitwarden]
-logpath = /var/log/bitwardenrs/bitwardenrs.log
+logpath = /var/log/bitwardenrs/error.log
 maxretry = 3
 bantime = 14400
 findtime = 14400
@@ -578,7 +592,7 @@ enabled = true
 port = 80,443
 filter = bitwarden-admin
 action = iptables-allports[name=bitwarden]
-logpath = /var/log/bitwardenrs/bitwardenrs.log
+logpath = /var/log/bitwardenrs/error.log
 maxretry = 5
 bantime = 14400
 findtime = 14400
@@ -586,5 +600,8 @@ EOF
 )"
 echo "${bitwardenfail2banadminjail}" > /etc/fail2ban/jail.d/bitwardenrs-admin.local
 
+sudo systemctl restart fail2ban
+
 printf >&2 "Please go to admin url: https://${domain}/admin\n\n"
 printf >&2 "Enter ${admintoken} to Access\n\n"
+
