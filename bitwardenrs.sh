@@ -603,7 +603,7 @@ printf >&2 "Please go to admin url: https://${domain}/admin\n\n"
 printf >&2 "Enter ${admintoken} to gain access, please save this somewhere!!\n\n"
 
 cd /opt/bitwardenrs
-./bitwarden_rs
+sudo ./bitwarden_rs
 
 printf >&2 "Please go to admin url: https://${domain}/admin\n\n"
 printf >&2 "Enter ${admintoken} to gain access, please save this somewhere!!\n\n"
