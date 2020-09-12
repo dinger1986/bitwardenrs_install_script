@@ -618,4 +618,4 @@ echo "waiting for the keypress"
 fi
 done
 
-reboot
+sudo reboot
