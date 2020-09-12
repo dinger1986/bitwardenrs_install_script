@@ -603,5 +603,5 @@ echo "${bitwardenfail2banadminjail}" > /etc/fail2ban/jail.d/bitwardenrs-admin.lo
 sudo systemctl restart fail2ban
 
 printf >&2 "Please go to admin url: https://${domain}/admin\n\n"
-printf >&2 "Enter ${admintoken} to Access\n\n"
+printf >&2 "Enter ${admintoken} to gain access at the above URL, also please save this somewhere for future access, if you and need it, it is recorded in /etc/bitwardenrs/bitwardenrs.conf under Admin_Token!!\n\n"
 
