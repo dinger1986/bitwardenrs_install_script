@@ -18,11 +18,8 @@ echo -ne "Enter your created username if you havent done this please do it now, 
 read username
 
 #Set email address
-while [[ $email != *[.]*[.]* ]]
-do
 echo -ne "Enter your Email Address${NC}: "
 read email
-done
 
 #Set Name
 while [[ $name != *[.]* ]]
@@ -38,17 +35,17 @@ echo -ne "Enter your Domain${NC}: "
 read domain
 done
 
-#openssl rand -base64 48
-#echo -ne "Enter your admin token generated with openssl rand -base64 48, if you havent ran this please do it now, use ctrl+c to cancel this script and run it${NC}: "
-#read admintoken
-
 admintoken=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 70 | head -n 1)
 
+remote_addr='$remote_addr'
+proxy_add_x_forwarded_for='$proxy_add_x_forwarded_for'
+scheme='$scheme'
+http_upgrade='$http_upgrade'
+host='$host'
 
 #Configure GIT
 sudo git config --global user.email "${email}"
 sudo git config --global user.name "${name}"
-
 
 #install dependencies
 sudo apt update && apt list -u && sudo apt dist-upgrade -y
@@ -603,5 +600,5 @@ echo "${bitwardenfail2banadminjail}" > /etc/fail2ban/jail.d/bitwardenrs-admin.lo
 sudo systemctl restart fail2ban
 
 printf >&2 "Please go to admin url: https://${domain}/admin\n\n"
-printf >&2 "Enter ${admintoken} to gain access at the above URL, also please save this somewhere for future access, if you and need it, it is recorded in /etc/bitwardenrs/bitwardenrs.conf under Admin_Token!!\n\n"
+printf >&2 "Enter ${admintoken} to gain access, please save this somewhere!!\n\n"
 
