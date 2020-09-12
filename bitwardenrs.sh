@@ -51,7 +51,7 @@ sudo git config --global user.name "${name}"
 sudo apt update && apt list -u && sudo apt dist-upgrade -y
 sudo apt install dirmngr git libssl-dev pkg-config build-essential curl wget git apt-transport-https ca-certificates curl software-properties-common pwgen nginx-full npm letsencrypt -y
 curl -sL https://deb.nodesource.com/setup_12.x | sudo bash -
-sudo apt install nodejs -7
+sudo apt install nodejs -y
 curl https://sh.rustup.rs -sSf | sh
 source /home/${username}/.cargo/env
 
