@@ -37,19 +37,13 @@ done
 
 admintoken=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 70 | head -n 1)
 
-remote_addr='$remote_addr'
-proxy_add_x_forwarded_for='$proxy_add_x_forwarded_for'
-scheme='$scheme'
-http_upgrade='$http_upgrade'
-host='$host'
-
 #Configure GIT
 sudo git config --global user.email "${email}"
 sudo git config --global user.name "${name}"
 
 #install dependencies
 sudo apt update && apt list -u && sudo apt dist-upgrade -y
-sudo apt install dirmngr git libssl-dev pkg-config build-essential curl wget git apt-transport-https ca-certificates curl software-properties-common pwgen nginx-full npm letsencrypt -y
+sudo apt install dirmngr git libssl-dev pkg-config build-essential curl wget git apt-transport-https ca-certificates curl software-properties-common pwgen nginx-full letsencrypt -y
 curl -sL https://deb.nodesource.com/setup_12.x | sudo bash -
 sudo apt install nodejs -y
 curl https://sh.rustup.rs -sSf | sh
@@ -455,22 +449,22 @@ server {
     location / {
         proxy_pass http://127.0.0.1:8000;
         proxy_set_header X-Forwarded-Host server_name;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
     }
 
     location /notifications/hub {
         proxy_pass http://127.0.0.1:3012;
-        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
     }
 
     location /notifications/hub/negotiate {
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_pass http://127.0.0.1:8000;
     }
 }
