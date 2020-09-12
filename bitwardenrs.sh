@@ -160,9 +160,8 @@ cd ..
 #Create BitwardenRS folder and copy
 sudo mkdir /opt/bitwardenrs
 sudo cp -r ~/bitwarden_rs/target/release/bitwarden_rs /opt/bitwardenrs
-#sudo mkdir /opt/bitwardenrs/web-vault
 sudo mv ~/web/build /opt/bitwardenrs/web-vault
-#sudo cp -r ~/web/build /opt/bitwardenrs/web-vault
+sudo mkdir /opt/bitwardenrs/data
 sudo mkdir /etc/bitwardenrs
 sudo chown ${username}:${username} -R /etc/bitwardenrs
 sudo chown ${username}:${username} -R /opt/bitwardenrs
@@ -592,12 +591,6 @@ EOF
 echo "${bitwardenfail2banadminjail}" > /etc/fail2ban/jail.d/bitwardenrs-admin.local
 
 sudo systemctl restart fail2ban
-
-printf >&2 "Please go to admin url: https://${domain}/admin\n\n"
-printf >&2 "Enter ${admintoken} to gain access, please save this somewhere!!\n\n"
-
-cd /opt/bitwardenrs
-sudo ./bitwarden_rs
 
 printf >&2 "Please go to admin url: https://${domain}/admin\n\n"
 printf >&2 "Enter ${admintoken} to gain access, please save this somewhere!!\n\n"
