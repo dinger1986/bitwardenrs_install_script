@@ -19,11 +19,11 @@ Switch to bitwardenrs user (script won't run as root) $ su bitwardenrs
 
 Change Directory to bitwardenrs home $ cd ~/
 
-Download the install script from github $ wget https://github.com/dinger1986/bitwardenrs_install_script/blob/master/install2.5.sh
+Download the install script from github $ wget https://github.com/dinger1986/bitwardenrs_install_script/blob/master/install2.15.sh
 
-Set Script as executable $ chmod +x bitwardenrs.sh
+Set Script as executable $ chmod +x install2.15
 
-Run script $ ./bitwardenrs.sh
+Run script $ ./install2.15
 
 Fill in info as requested as the script runs
 
