@@ -119,7 +119,7 @@ server {
     error_log /var/log/nginx/${domain}_error.log;  
     include includes/letsencrypt.conf;     # redirect all HTTP traffic to HTTPS.
     location / {
-        return  302 https://${domain}$request_uri;
+        return  302 https://${domain}/$request_uri;
     }
 }
 
@@ -303,7 +303,7 @@ LOG_LEVEL=Info
 
 ## Controls which users can create new orgs.
 ## Blank or 'all' means all users can create orgs (this is the default):
-# ORG_CREATION_USERS=
+ORG_CREATION_USERS=all
 ## 'none' means no users can create orgs:
 # ORG_CREATION_USERS=none
 ## A comma-separated list means only those users can create orgs:
@@ -418,7 +418,7 @@ server {
     }
 
     location / {
-        return 301 https://$host$request_uri;
+        return 301 https:///$host$request_uri;
     }
 }
 
