@@ -1,6 +1,16 @@
 ####     Thanks to wh1te909 who I stole (or got inspiration) alot of this script from (first script I have ever written) 
 ####     and https://pieterhollander.nl/post/bitwarden/ which I followed the steps and converted them to a script
 
+echo "Press any key to start install, please be aware this will install the most up to date version which currently organisations doesn't work on"
+while [ true ] ; do
+read -t 3 -n 1
+if [ $? = 0 ] ; then
+exit ;
+else
+echo "waiting for the keypress"
+fi
+done
+
 #check if running on ubuntu 20.04
 UBU20=$(grep 20.04 "/etc/"*"release")
 if ! [[ $UBU20 ]]; then
@@ -8,6 +18,7 @@ if ! [[ $UBU20 ]]; then
   exit 1
 fi
 
+#check if running as root
 if [ $EUID -eq 0 ]; then
   echo -ne "\033[0;31mDo NOT run this script as root. Exiting.\e[0m\n"
   exit 1
