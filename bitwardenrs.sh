@@ -245,7 +245,7 @@ LOG_FILE=/var/log/bitwardenrs/error.log
 ## Valid values are "trace", "debug", "info", "warn", "error" and "off"
 ## Setting it to "trace" or "debug" would also show logs for mounted 
 ## routes and static file, websocket and alive requests
-LOG_LEVEL=Info
+LOG_LEVEL=info
 
 ## Enable WAL for the DB
 ## Set to false to avoid enabling WAL during startup.
