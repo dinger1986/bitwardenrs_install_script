@@ -9,7 +9,7 @@ Requirements 1GB Ram (perhaps overspec'd for running BitWarden_RS but much less 
 
 Prerequisites Ubuntu 20.04 Create non root user DNS record created on domain (you can get free domains from freenom.com) pointed to your external IP Ports 80, 443 and 22 opened on your firewall and pointed to the deployment machine.
 
-Install2.15.sh will install the Bitwarden_RS 1.16.3 and Bitwarden Web 2.15.1 which fully works.
+Install2.15.sh will install the Bitwarden_RS 1.15.1 and Bitwarden Web 2.15.1 which fully works.
 
 Installlatest.sh will install the newest version of BitWarden_RS and Bitwarden Web, however you cannot add organisations, this has been rasied as a bug and when 2.15 is no longer needed I will remove it.
 
