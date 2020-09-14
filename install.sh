@@ -150,14 +150,14 @@ sudo letsencrypt certonly --webroot -w /var/www/letsencrypt -d ${domain}
 #Compile bitwarden_rs
 git clone https://github.com/dani-garcia/bitwarden_rs.git
 cd bitwarden_rs/
-git checkout "$(git tag --sort=v:refname | tail -n1)" # checkout most recent version
+git checkout "/$(git tag --sort=v:refname | tail -n1)" # checkout most recent version
 cargo build --features sqlite --release
 cd ..
 
 #Clone and checkout repository
 git clone https://github.com/bitwarden/web.git
 cd web
-git checkout "$(git tag --sort=v:refname | tail -n1)" # checkout most recent version
+git checkout "/$(git tag --sort=v:refname | tail -n1)" # checkout most recent version
 wget https://raw.githubusercontent.com/dani-garcia/bw_web_builds/master/patches/$(git tag --sort=v:refname | tail -n1).patch
 git apply $(git tag --sort=v:refname | tail -n1).patch
 
