@@ -28,12 +28,12 @@ source $HOME/.cargo/env
 #Download newest versions of Bitwarden RS
 git clone https://github.com/dani-garcia/bitwarden_rs.git
 cd bitwarden_rs/
-git checkout "$(git tag --sort=v:refname | tail -n1)" # checkout most recent version
+git checkout "/$(git tag --sort=v:refname | tail -n1)" # checkout most recent version
 cargo build --features sqlite --release
 cd ../
 git clone https://github.com/bitwarden/web.git
 cd web
-git checkout "$(git tag --sort=v:refname | tail -n1)" # checkout most recent version
+git checkout "/$(git tag --sort=v:refname | tail -n1)" # checkout most recent version
 
 #Download and apply patch
 wget https://raw.githubusercontent.com/dani-garcia/bw_web_builds/master/patches/$(git tag --sort=v:refname | tail -n1).patch
@@ -46,11 +46,10 @@ npm audit fix
 npm run dist
 cd ..
 
-#Apply Updates
+#Apply Updates and restart Bitwarden_RS
 sudo systemctl stop bitwarden.service
 sudo cp -r ~/bitwarden_rs/target/release/bitwarden_rs /opt/bitwardenrs
-sudo rm -rf /opt/bitwarden/web-vault
+sudo rm -rf /opt/bitwardenrs/web-vault
 sudo mv ~/web/build /opt/bitwardenrs/web-vault
-sudo chown -R ${username}:${username} /opt/bitwarden
+sudo chown -R ${username}:${username} /opt/bitwardenrs
 sudo systemctl start bitwarden.service
-systemctl status bitwarden.service
