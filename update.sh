@@ -19,25 +19,25 @@ echo -ne "Enter your created username if you havent done this please do it now, 
 read username
 
 #Clean up old folders
-rm -rf bitwarden_rs web
+rm -rf ~/bitwarden_rs ~/web
 
 #Upgrade Rust
 curl https://sh.rustup.rs -sSf | sh
 source $HOME/.cargo/env
 
-#Download newest versions of Bitwarden RS
+#Download newest versions of Bitwarden RS and compile
 git clone https://github.com/dani-garcia/bitwarden_rs.git
 cd bitwarden_rs/
-git checkout "/$(git tag --sort=v:refname | tail -n1)" # checkout most recent version
+git checkout \"$(git tag --sort=v:refname | tail -n1)" # checkout most recent version
 cargo build --features sqlite --release
-cd ../
+cd ..
+
+#Clone and checkout repository for Bitwarden web and patch
 git clone https://github.com/bitwarden/web.git
 cd web
-git checkout "/$(git tag --sort=v:refname | tail -n1)" # checkout most recent version
-
-#Download and apply patch
-wget https://raw.githubusercontent.com/dani-garcia/bw_web_builds/master/patches/$(git tag --sort=v:refname | tail -n1).patch
-git apply $(git tag --sort=v:refname | tail -n1).patch
+git checkout \"$(git tag --sort=v:refname | tail -n1)" # checkout most recent version
+wget https://raw.githubusercontent.com/dani-garcia/bw_web_builds/master/patches/\$(git tag --sort=v:refname | tail -n1).patch
+git apply \$(git tag --sort=v:refname | tail -n1).patch
 
 #Build Web
 npm run sub:init
