@@ -19,9 +19,9 @@ Change Directory to bitwardenrs home $ cd ~/
 
 Download the install script from github $ wget https://github.com/dinger1986/bitwardenrs_install_script/blob/master/install.sh
 
-Set Script as executable $ chmod +x install2.15
+Set Script as executable $ chmod +x install.sh
 
-Run script $ ./install2.15
+Run script $ ./install.sh
 
 Fill in info as requested as the script runs
 
