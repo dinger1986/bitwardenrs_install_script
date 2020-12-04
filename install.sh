@@ -99,7 +99,6 @@ EOF
 echo "${letsencrypt}" > /etc/nginx/includes/letsencrypt.conf
 
 sudo mkdir /var/www/letsencrypt
-sudo openssl dhparam -out /etc/ssl/certs/dhparam.pem 4096
 
 sudo chown ${username}:${username} -R /etc/nginx/sites-available/
 
@@ -432,7 +431,6 @@ server {
 
     ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;
-    ssl_dhparam /etc/ssl/certs/dhparam.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers on;
     ssl_ciphers "ECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH";
