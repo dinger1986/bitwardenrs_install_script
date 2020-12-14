@@ -415,7 +415,7 @@ server {
     server_name ${domain};
 
     location /.well-known/acme-challenge/ {
-        root /var/www/acme;
+        root /var/www/letsencrypt;
     }
 
     location / {
