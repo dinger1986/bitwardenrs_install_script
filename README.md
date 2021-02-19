@@ -5,7 +5,7 @@ Please note this is an unofficial install script and support requests for the in
 
 This installs BitWarden_RS on Ubuntu 20.04 with SQLite, configures firewall and enables fail2ban.
 
-Requirements 1GB Ram (perhaps overspec'd for running BitWarden_RS but much less compile will take to long. It already takes quite a while to run the script)
+Requirements 2GB Ram (perhaps overspec'd for running BitWarden_RS but much less compile will crash)
 
 Prerequisites Ubuntu 20.04 Create non root user DNS record created on domain (you can get free domains from freenom.com) pointed to your external IP Ports 80, 443 and 22 opened on your firewall and pointed to the deployment machine.
 
