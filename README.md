@@ -26,3 +26,14 @@ Run script $ ./install.sh
 Fill in info as requested as the script runs
 
 Once complete go to https://yourdomain/admin
+
+To update
+
+Download the update script from github $ wget https://raw.githubusercontent.com/dinger1986/bitwardenrs_install_script/master/update.sh
+
+Set Script as executable $ chmod +x update.sh
+
+Run script $ ./update.sh
+
+Fill in info as requested as the script runs
+
