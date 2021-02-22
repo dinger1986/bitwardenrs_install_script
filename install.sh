@@ -148,7 +148,8 @@ cd ..
 git clone https://github.com/bitwarden/web.git
 cd web
 git checkout
-wget https://raw.githubusercontent.com/dani-garcia/bw_web_builds/master/patches/$(git tag --sort=v:refname | tail -n1).patch
+gittagno=$(git tag --sort=v:refname | tail -n1)
+wget https://raw.githubusercontent.com/dani-garcia/bw_web_builds/master/patches/${gittagno}.patch
 git apply $(git tag --sort=v:refname | tail -n1).patch
 
 #Build the web vault
