@@ -38,7 +38,7 @@ cd web
 git checkout
 gittagno=$(git tag --sort=v:refname | tail -n1)
 wget https://raw.githubusercontent.com/dani-garcia/bw_web_builds/master/patches/${gittagno}.patch
-git apply \$(git tag --sort=v:refname | tail -n1).patch
+git apply ${gittagno}.patch
 
 #Build Web
 npm run sub:init
