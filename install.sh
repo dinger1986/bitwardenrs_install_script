@@ -528,15 +528,6 @@ sudo systemctl start bitwarden
 #####Fail2ban setup
 sudo apt install -y fail2ban
 
-sudo touch /etc/fail2ban/filter.d/bitwardenrs.conf
-sudo touch /etc/fail2ban/jail.d/bitwardenrs.local
-sudo touch /etc/fail2ban/filter.d/bitwardenrs-admin.conf
-sudo touch /etc/fail2ban/jail.d/bitwardenrs-admin.local
-sudo chown ${username}:${username} -R /etc/fail2ban/filter.d/bitwardenrs.conf
-sudo chown ${username}:${username} -R /etc/fail2ban/jail.d/bitwardenrs.local
-sudo chown ${username}:${username} -R /etc/fail2ban/filter.d/bitwardenrs-admin.conf
-sudo chown ${username}:${username} -R /etc/fail2ban/jail.d/bitwardenrs-admin.local
-
 #Set BitWarden fail2ban filter conf File
 bitwardenfail2banfilter="$(cat << EOF
 [INCLUDES]
@@ -547,11 +538,11 @@ failregex = ^.*Username or password is incorrect\. Try again\. IP: <HOST>\. User
 ignoreregex =
 EOF
 )"
-echo "${bitwardenfail2banfilter}" > /etc/fail2ban/filter.d/bitwardenrs.conf
+sudo echo "${bitwardenfail2banfilter}" > /etc/fail2ban/filter.d/bitwardenrs.conf
 
 #Set BitWarden fail2ban jail conf File
 bitwardenfail2banjail="$(cat << EOF
-[bitwarden]
+[bitwardenrs]
 enabled = true
 port = 80,443,8081
 filter = bitwarden
@@ -562,7 +553,7 @@ bantime = 14400
 findtime = 14400
 EOF
 )"
-echo "${bitwardenfail2banjail}" > /etc/fail2ban/jail.d/bitwardenrs.local
+sudo echo "${bitwardenfail2banjail}" > /etc/fail2ban/jail.d/bitwardenrs.local
 
 #Set BitWarden fail2ban admin filter conf File
 bitwardenfail2banadminfilter="$(cat << EOF
@@ -574,11 +565,11 @@ failregex = ^.*Unauthorized Error: Invalid admin token\. IP: <HOST>.*$
 ignoreregex =
 EOF
 )"
-echo "${bitwardenfail2banadminfilter}" > /etc/fail2ban/filter.d/bitwardenrs-admin.conf
+sudo echo "${bitwardenfail2banadminfilter}" > /etc/fail2ban/filter.d/bitwardenrs-admin.conf
 
 #Set BitWarden fail2ban admin jail conf File
 bitwardenfail2banadminjail="$(cat << EOF
-[bitwarden-admin]
+[bitwardenrs-admin]
 enabled = true
 port = 80,443
 filter = bitwarden-admin
@@ -589,7 +580,7 @@ bantime = 14400
 findtime = 14400
 EOF
 )"
-echo "${bitwardenfail2banadminjail}" > /etc/fail2ban/jail.d/bitwardenrs-admin.local
+sudo echo "${bitwardenfail2banadminjail}" > /etc/fail2ban/jail.d/bitwardenrs-admin.local
 
 sudo systemctl restart fail2ban
 
