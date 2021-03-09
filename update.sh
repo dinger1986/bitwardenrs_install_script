@@ -54,3 +54,20 @@ sudo rm -rf /opt/bitwardenrs/web-vault
 sudo mv ~/web/build /opt/bitwardenrs/web-vault
 sudo chown -R ${username}:${username} /opt/bitwardenrs
 sudo systemctl start bitwarden.service
+
+## Fix for certbot auto renew
+sudo sed -i "s|/var/www/acme|/var/www/letsencrypt|g" /etc/nginx/sites-available/bitwardenrs
+
+#restart nginx
+sudo service nginx restart
+
+#rerun certification
+sudo letsencrypt renew
+
+## Fix fail2ban
+
+sudo sed -i "s|filter = bitwarden|filter = bitwardenrs|g" /etc/fail2ban/jail.d/bitwardenrs.local
+sudo sed -i "s|filter = bitwarden-admin|filter = bitwardenrs-admin|g" /etc/fail2ban/jail.d/bitwardenrs-admin.local
+sudo systemctl restart fail2ban
+
+###Renew certs can be done by sudo letsencrypt renew (this should automatically be in /etc/cron.d/certbot)
