@@ -37,6 +37,7 @@ git clone https://github.com/bitwarden/web.git
 cd web
 git checkout
 gittagno=$(git tag --sort=v:refname | tail -n1)
+git submodule update --init --recursive
 wget https://raw.githubusercontent.com/dani-garcia/bw_web_builds/master/patches/${gittagno}.patch
 git apply ${gittagno}.patch
 
