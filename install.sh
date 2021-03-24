@@ -529,6 +529,12 @@ sudo systemctl start bitwarden
 #####Fail2ban setup
 sudo apt install -y fail2ban
 
+#Create files
+sudo touch /etc/fail2ban/filter.d/bitwardenrs.conf
+sudo touch /etc/fail2ban/jail.d/bitwardenrs.local
+sudo touch /etc/fail2ban/filter.d/bitwardenrs-admin.conf
+sudo touch /etc/fail2ban/jail.d/bitwardenrs-admin.local
+
 #Set BitWarden fail2ban filter conf File
 bitwardenfail2banfilter="$(cat << EOF
 [INCLUDES]
