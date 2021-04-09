@@ -545,7 +545,7 @@ failregex = ^.*Username or password is incorrect\. Try again\. IP: <HOST>\. User
 ignoreregex =
 EOF
 )"
-sudo echo "${bitwardenfail2banfilter}" > /etc/fail2ban/filter.d/bitwardenrs.conf
+echo "${bitwardenfail2banfilter}" | sudo tee -a /etc/fail2ban/filter.d/bitwardenrs.conf > /dev/null
 
 #Set BitWarden fail2ban jail conf File
 bitwardenfail2banjail="$(cat << EOF
@@ -560,7 +560,7 @@ bantime = 14400
 findtime = 14400
 EOF
 )"
-sudo echo "${bitwardenfail2banjail}" > /etc/fail2ban/jail.d/bitwardenrs.local
+echo "${bitwardenfail2banjail}" | sudo tee -a /etc/fail2ban/jail.d/bitwardenrs.local > /dev/null
 
 #Set BitWarden fail2ban admin filter conf File
 bitwardenfail2banadminfilter="$(cat << EOF
@@ -572,7 +572,7 @@ failregex = ^.*Unauthorized Error: Invalid admin token\. IP: <HOST>.*$
 ignoreregex =
 EOF
 )"
-sudo echo "${bitwardenfail2banadminfilter}" > /etc/fail2ban/filter.d/bitwardenrs-admin.conf
+echo "${bitwardenfail2banadminfilter}" | sudo tee -a /etc/fail2ban/filter.d/bitwardenrs-admin.conf > /dev/null
 
 #Set BitWarden fail2ban admin jail conf File
 bitwardenfail2banadminjail="$(cat << EOF
@@ -587,7 +587,7 @@ bantime = 14400
 findtime = 14400
 EOF
 )"
-sudo echo "${bitwardenfail2banadminjail}" > /etc/fail2ban/jail.d/bitwardenrs-admin.local
+echo "${bitwardenfail2banadminjail}" | sudo tee -a /etc/fail2ban/jail.d/bitwardenrs-admin.local > /dev/null
 
 sudo systemctl restart fail2ban
 
