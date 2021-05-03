@@ -1,5 +1,5 @@
-# bitwardenrs_install_script
-Install Script for BitWarden_RS for Ubuntu 20.04 using https://github.com/dani-garcia/vaultwarden
+# Vaultwarden/BitwardenRS_install_script
+Install Script for Vultwarden for Ubuntu 20.04 using https://github.com/dani-garcia/vaultwarden
 
 Please note this is an unofficial install script and support requests for the install should come here not to https://github.com/dani-garcia/vaultwarden
 
