@@ -26,8 +26,8 @@ curl https://sh.rustup.rs -sSf | sh
 source $HOME/.cargo/env
 
 #Download newest versions of Bitwarden RS and compile
-git clone https://github.com/dani-garcia/bitwarden_rs.git
-cd bitwarden_rs/
+git clone https://github.com/dani-garcia/vaultwarden.git
+cd vaultwarden/
 git checkout
 cargo build --features sqlite --release
 cd ..
@@ -50,7 +50,7 @@ cd ..
 
 #Apply Updates and restart Bitwarden_RS
 sudo systemctl stop bitwarden.service
-sudo cp -r ~/bitwarden_rs/target/release/bitwarden_rs /opt/bitwardenrs
+sudo cp -r ~/vaultwarden/target/release/vaultwarden /opt/bitwardenrs
 sudo rm -rf /opt/bitwardenrs/web-vault
 sudo mv ~/web/build /opt/bitwardenrs/web-vault
 sudo chown -R ${username}:${username} /opt/bitwardenrs
