@@ -137,9 +137,9 @@ sudo service nginx restart
 #run certification
 sudo letsencrypt certonly --webroot -w /var/www/letsencrypt -d ${domain}
 
-#Compile bitwarden_rs
-git clone https://github.com/dani-garcia/bitwarden_rs.git
-cd bitwarden_rs/
+#Compile vaultwarden
+git clone https://github.com/dani-garcia/vaultwarden.git
+cd vaultwarden/
 git checkout
 cargo build --features sqlite --release
 cd ..
@@ -162,7 +162,7 @@ cd ..
 
 #Create BitwardenRS folder and copy
 sudo mkdir /opt/bitwardenrs
-sudo cp -r ~/bitwarden_rs/target/release/bitwarden_rs /opt/bitwardenrs
+sudo cp -r ~/vaultwarden/target/release/vaultwarden /opt/bitwardenrs
 sudo mv ~/web/build /opt/bitwardenrs/web-vault
 sudo mkdir /opt/bitwardenrs/data
 sudo mkdir /etc/bitwardenrs
