@@ -1,7 +1,7 @@
 # bitwardenrs_install_script
-Install Script for BitWarden_RS for Ubuntu 20.04 using https://github.com/dani-garcia/bitwarden_rs
+Install Script for BitWarden_RS for Ubuntu 20.04 using https://github.com/dani-garcia/vaultwarden
 
-Please note this is an unofficial install script and support requests for the install should come here not to https://github.com/dani-garcia/bitwarden_rs
+Please note this is an unofficial install script and support requests for the install should come here not to https://github.com/dani-garcia/vaultwarden
 
 This installs BitWarden_RS on Ubuntu 20.04 with SQLite, configures firewall and enables fail2ban.
 
