@@ -1,7 +1,7 @@
 # ***Not under active development. Anyone is welcome to take the script and develop it further. If someone does and wants to let me know I will remove this repository, any issues will be closed and pull requests will not be accepted, the bones are there for someone else to take this on and make it work since Bitwarden_RS was renamed to Vaultwarden***
 
 
-# Vaultwarden/BitwardenRS_install_script. 
+Vaultwarden/BitwardenRS_install_script. 
 
 Install Script for Vultwarden for Ubuntu 20.04 using https://github.com/dani-garcia/vaultwarden
 
