@@ -1,4 +1,4 @@
-# ***Not under active development. Anyone is welcome to take the script and develop it further. If someone does and wants to let me know I will remove this repository, any issues will be closed and pull requests will not be accepted, the bones are there for someone else to take this on and make it work since Bitwarden_RS was renamed to Vaultwarden***
+# ***Not under active development, due to my company no longer using Bitwarden. Anyone is welcome to take the script and develop it further, or collaborate. If someone does and wants to let me know I can add them to the repo or remove it if they fork it. For now any issues will be closed and pull requests will not be accepted, the bones are there for someone else to take this on and make it work since Bitwarden_RS was renamed to Vaultwarden***
 
 
 Vaultwarden/BitwardenRS_install_script. 
