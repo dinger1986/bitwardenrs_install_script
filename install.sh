@@ -1,5 +1,5 @@
 ####     Thanks to wh1te909 who I stole (or got inspiration) alot of this script from (first script I have ever written) 
-####     and https://pieterhollander.nl/post/bitwarden/ which I followed the steps and converted them to a script
+####     and https://pieterhollander.nl/post/vaultwarden/ which I followed the steps and converted them to a script
 
 
 #check if running on ubuntu 20.04
@@ -102,8 +102,8 @@ sudo mkdir /var/www/letsencrypt
 
 sudo chown ${username}:${username} -R /etc/nginx/sites-available/
 
-#Set BitWarden web file
-bitwardenrsconf="$(cat << EOF
+#Set vaultwarden web file
+vaultwardenconf="$(cat << EOF
 #
 # HTTP does *soft* redirect to HTTPS
 #
@@ -126,10 +126,10 @@ server {
 
 EOF
 )"
-echo "${bitwardenrsconf}" > /etc/nginx/sites-available/bitwardenrs
+echo "${vaultwardenconf}" > /etc/nginx/sites-available/vaultwarden
 
-#make bitwarden site live
-sudo ln /etc/nginx/sites-available/bitwardenrs /etc/nginx/sites-enabled/bitwardenrs
+#make vaultwarden site live
+sudo ln /etc/nginx/sites-available/vaultwarden /etc/nginx/sites-enabled/vaultwarden
 
 #restart nginx
 sudo service nginx restart
@@ -144,34 +144,28 @@ git checkout
 cargo build --features sqlite --release
 cd ..
 
-#Clone and checkout repository for Bitwarden web and patch
-git clone https://github.com/bitwarden/web.git
-cd web
-git checkout
-gittagno=$(git tag --sort=v:refname | tail -n1)
-git submodule update --init --recursive
-wget https://raw.githubusercontent.com/dani-garcia/bw_web_builds/master/patches/${gittagno}.patch
-git apply ${gittagno}.patch
+#Download precompiled webvault
+VWRELEASE=$(curl -s https://api.github.com/repos/dani-garcia/bw_web_builds/releases/latest \
+| grep "tag_name" \
+| awk '{print substr($2, 2, length($2)-3) }') \
 
-#Build the web vault
-npm run sub:init
-npm install
-npm audit fix
-npm run dist
-cd ..
+wget https://github.com/dani-garcia/bw_web_builds/releases/download/$VWRELEASE/bw_web_$VWRELEASE.tar.gz
 
-#Create BitwardenRS folder and copy
-sudo mkdir /opt/bitwardenrs
-sudo cp -r ~/vaultwarden/target/release/vaultwarden /opt/bitwardenrs
-sudo mv ~/web/build /opt/bitwardenrs/web-vault
-sudo mkdir /opt/bitwardenrs/data
-sudo mkdir /etc/bitwardenrs
-sudo chown ${username}:${username} -R /etc/bitwardenrs
-sudo chown ${username}:${username} -R /opt/bitwardenrs
+tar -xzf bw_web_$VWRELEASE.tar.gz 
 
+#Create vaultwarden folder and copy
+sudo mkdir /opt/vaultwarden
+sudo cp -r ~/vaultwarden/target/release/vaultwarden /opt/vaultwarden
+sudo mv ~/web-vault /opt/vaultwarden/web-vault
+sudo mkdir /opt/vaultwarden/data
+sudo mkdir /etc/vaultwarden
+sudo chown ${username}:${username} -R /etc/vaultwarden
+sudo chown ${username}:${username} -R /opt/vaultwarden
 
-#Set BitWardenRS Conf File
-bitwardenrsconf="$(cat << EOF
+touch /etc/vaultwarden/vaultwarden.conf
+
+#Set vaultwardenRS Conf File
+vaultwardenconf="$(cat << EOF
 ## Bitwarden_RS Configuration File
 ## Uncomment any of the following lines to change the defaults
 ##
@@ -192,7 +186,7 @@ bitwardenrsconf="$(cat << EOF
 ## Details:
 ## - https://docs.diesel.rs/diesel/pg/struct.PgConnection.html
 ## - https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
-# DATABASE_URL=postgresql://user:password@host[:port]/database_name
+## DATABASE_URL=mysql://vwarden:${mysqlpwd}@localhost:3306/vwarden
 
 
 ## Individual folders, these override %DATA_FOLDER%
@@ -216,7 +210,7 @@ bitwardenrsconf="$(cat << EOF
 # ICON_CACHE_NEGTTL=259200
 
 ## Web vault settings
-#WEB_VAULT_FOLDER=/opt/bitwardenrs/web-vault/
+#WEB_VAULT_FOLDER=/opt/vaultwarden/web-vault/
 #WEB_VAULT_ENABLED=true
 
 ## Enables websocket notifications
@@ -236,7 +230,7 @@ WEBSOCKET_ADDRESS=127.0.0.1
 ## Logging to file
 ## This requires extended logging
 ## It's recommended to also set 'ROCKET_CLI_COLORS=off'
-LOG_FILE=/var/log/bitwardenrs/error.log
+LOG_FILE=/var/log/vaultwarden/error.log
 
 ## Logging to Syslog
 ## This requires extended logging
@@ -253,7 +247,7 @@ LOG_LEVEL=info
 ## Enable WAL for the DB
 ## Set to false to avoid enabling WAL during startup.
 ## Note that if the DB already has WAL enabled, you will also need to disable WAL in the DB,
-## this setting only prevents bitwarden_rs from automatically enabling it on start.
+## this setting only prevents vaultwarden_rs from automatically enabling it on start.
 ## Please read project wiki page about this setting first before changing the value as it can
 ## cause performance degradation or might render  the service unable to start.
 # ENABLE_DB_WAL=true
@@ -349,7 +343,7 @@ DOMAIN=https://${domain}
 ## Duo Settings
 ## You need to configure all options to enable global Duo support, otherwise users would need to configure it themselves
 ## Create an account and protect an application as mentioned in this link (only the first step, not the rest):
-## https://help.bitwarden.com/article/setup-two-step-login-duo/#create-a-duo-security-account
+## https://help.vaultwarden.com/article/setup-two-step-login-duo/#create-a-duo-security-account
 ## Then set the following options, based on the values obtained from the last step:
 # DUO_IKEY=<Integration Key>
 # DUO_SKEY=<Secret Key>
@@ -392,26 +386,28 @@ ROCKET_PORT=8000
 
 EOF
 )"
-echo "${bitwardenrsconf}" > /etc/bitwardenrs/bitwardenrs.conf
+echo "${vaultwardenconf}" > /etc/vaultwarden/vaultwarden.conf
 
 #Add some folders and permissions
-sudo chmod 600 /etc/bitwardenrs/bitwardenrs.conf
-sudo chown ${username}:${username} /etc/bitwardenrs/bitwardenrs.conf
+sudo chmod 600 /etc/vaultwarden/vaultwarden.conf
+sudo chown ${username}:${username} /etc/vaultwarden/vaultwarden.conf
 
-sudo mkdir /var/log/bitwardenrs
-sudo chown -R ${username}:${username} /var/log/bitwardenrs
-touch /var/log/bitwardenrs/error.log
+sudo mkdir /var/log/vaultwarden
+sudo chown -R ${username}:${username} /var/log/vaultwarden
+touch /var/log/vaultwarden/error.log
 
 #Stop nginx to remove file
 sudo service nginx stop
 
-#Remove bitwarden config to add SSL
-sudo rm /etc/nginx/sites-enabled/bitwardenrs
-sudo rm /etc/nginx/sites-available/bitwardenrs
+#Remove vaultwarden config to add SSL
+sudo rm /etc/nginx/sites-enabled/vaultwarden
+sudo rm /etc/nginx/sites-available/vaultwarden
 sudo chown ${username}:${username} -R /etc/nginx/sites-available
 
-#Set BitWarden web file with SSL
-bitwardenrsconf2="$(cat << EOF
+touch /etc/nginx/sites-available/vaultwarden
+
+#Set vaultwarden web file with SSL
+vaultwardenconf2="$(cat << EOF
 server {
     listen 80;
     server_name ${domain};
@@ -471,21 +467,21 @@ server {
 }
 EOF
 )"
-echo "${bitwardenrsconf2}" > /etc/nginx/sites-available/bitwardenrs
+echo "${vaultwardenconf2}" > /etc/nginx/sites-available/vaultwarden
 
-#reenable bitwarden site
-sudo ln /etc/nginx/sites-available/bitwardenrs /etc/nginx/sites-enabled/bitwardenrs
+#reenable vaultwarden site
+sudo ln /etc/nginx/sites-available/vaultwarden /etc/nginx/sites-enabled/vaultwarden
 
 #Start nginx with SSL
 sudo service nginx start
 
-sudo touch /etc/systemd/system/bitwarden.service
-sudo chown ${username}:${username} -R /etc/systemd/system/bitwarden.service
+sudo touch /etc/systemd/system/vaultwarden.service
+sudo chown ${username}:${username} -R /etc/systemd/system/vaultwarden.service
 
-#Set BitWarden Service File
-bitwardenservice="$(cat << EOF
+#Set vaultwarden Service File
+vaultwardenservice="$(cat << EOF
 [Unit]
-Description=Bitwarden server
+Description=Vaultwarden server
 After=network.target auditd.service
 
 [Service]
@@ -495,13 +491,13 @@ Type=simple
 User=${username}
 Group=${username}
 
-EnvironmentFile=/etc/bitwardenrs/bitwardenrs.conf
+EnvironmentFile=/etc/vaultwarden/vaultwarden.conf
 
-WorkingDirectory=/opt/bitwardenrs/
-ExecStart=/opt/bitwardenrs/bitwarden_rs
+WorkingDirectory=/opt/vaultwarden/
+ExecStart=/opt/vaultwarden/vaultwarden
 Restart=always
 
-# Isolate bitwarden_rs from the rest of the system
+# Isolate vaultwarden from the rest of the system
 PrivateTmp=true
 PrivateDevices=true
 ProtectHome=true
@@ -509,7 +505,7 @@ NoNewPrivileges=true
 ProtectSystem=strict
 
 # Only allow writes to the following directory
-ReadWritePaths=/opt/bitwardenrs/data/ /var/log/bitwardenrs/error.log
+ReadWritePaths=/opt/vaultwarden/data/ /var/log/vaultwarden/error.log
 
 # Set reasonable connection and process limits
 LimitNOFILE=1048576
@@ -520,23 +516,23 @@ WantedBy=multi-user.target
 
 EOF
 )"
-echo "${bitwardenservice}" > /etc/systemd/system/bitwarden.service
+echo "${vaultwardenservice}" > /etc/systemd/system/vaultwarden.service
 
 sudo systemctl daemon-reload
-sudo systemctl enable bitwarden
-sudo systemctl start bitwarden
+sudo systemctl enable vaultwarden
+sudo systemctl start vaultwarden
 
 #####Fail2ban setup
 sudo apt install -y fail2ban
 
 #Create files
-sudo touch /etc/fail2ban/filter.d/bitwardenrs.conf
-sudo touch /etc/fail2ban/jail.d/bitwardenrs.local
-sudo touch /etc/fail2ban/filter.d/bitwardenrs-admin.conf
-sudo touch /etc/fail2ban/jail.d/bitwardenrs-admin.local
+sudo touch /etc/fail2ban/filter.d/vaultwarden.conf
+sudo touch /etc/fail2ban/jail.d/vaultwarden.local
+sudo touch /etc/fail2ban/filter.d/vaultwarden-admin.conf
+sudo touch /etc/fail2ban/jail.d/vaultwarden-admin.local
 
-#Set BitWarden fail2ban filter conf File
-bitwardenfail2banfilter="$(cat << EOF
+#Set vaultwarden fail2ban filter conf File
+vaultwardenfail2banfilter="$(cat << EOF
 [INCLUDES]
 before = common.conf
 
@@ -545,25 +541,25 @@ failregex = ^.*Username or password is incorrect\. Try again\. IP: <HOST>\. User
 ignoreregex =
 EOF
 )"
-echo "${bitwardenfail2banfilter}" | sudo tee -a /etc/fail2ban/filter.d/bitwardenrs.conf > /dev/null
+echo "${vaultwardenfail2banfilter}" | sudo tee -a /etc/fail2ban/filter.d/vaultwarden.conf > /dev/null
 
-#Set BitWarden fail2ban jail conf File
-bitwardenfail2banjail="$(cat << EOF
-[bitwardenrs]
+#Set vaultwarden fail2ban jail conf File
+vaultwardenfail2banjail="$(cat << EOF
+[vaultwarden]
 enabled = true
 port = 80,443,8081
-filter = bitwarden
-action = iptables-allports[name=bitwarden]
-logpath = /var/log/bitwardenrs/error.log
+filter = vaultwarden
+action = iptables-allports[name=vaultwarden]
+logpath = /var/log/vaultwarden/error.log
 maxretry = 3
 bantime = 14400
 findtime = 14400
 EOF
 )"
-echo "${bitwardenfail2banjail}" | sudo tee -a /etc/fail2ban/jail.d/bitwardenrs.local > /dev/null
+echo "${vaultwardenfail2banjail}" | sudo tee -a /etc/fail2ban/jail.d/vaultwarden.local > /dev/null
 
-#Set BitWarden fail2ban admin filter conf File
-bitwardenfail2banadminfilter="$(cat << EOF
+#Set vaultwarden fail2ban admin filter conf File
+vaultwardenfail2banadminfilter="$(cat << EOF
 [INCLUDES]
 before = common.conf
 
@@ -572,22 +568,22 @@ failregex = ^.*Unauthorized Error: Invalid admin token\. IP: <HOST>.*$
 ignoreregex =
 EOF
 )"
-echo "${bitwardenfail2banadminfilter}" | sudo tee -a /etc/fail2ban/filter.d/bitwardenrs-admin.conf > /dev/null
+echo "${vaultwardenfail2banadminfilter}" | sudo tee -a /etc/fail2ban/filter.d/vaultwarden-admin.conf > /dev/null
 
-#Set BitWarden fail2ban admin jail conf File
-bitwardenfail2banadminjail="$(cat << EOF
-[bitwardenrs-admin]
+#Set vaultwarden fail2ban admin jail conf File
+vaultwardenfail2banadminjail="$(cat << EOF
+[vaultwarden-admin]
 enabled = true
 port = 80,443
-filter = bitwarden-admin
-action = iptables-allports[name=bitwarden]
-logpath = /var/log/bitwardenrs/error.log
+filter = vaultwarden-admin
+action = iptables-allports[name=vaultwarden]
+logpath = /var/log/vaultwarden/error.log
 maxretry = 5
 bantime = 14400
 findtime = 14400
 EOF
 )"
-echo "${bitwardenfail2banadminjail}" | sudo tee -a /etc/fail2ban/jail.d/bitwardenrs-admin.local > /dev/null
+echo "${vaultwardenfail2banadminjail}" | sudo tee -a /etc/fail2ban/jail.d/vaultwarden-admin.local > /dev/null
 
 sudo systemctl restart fail2ban
 
