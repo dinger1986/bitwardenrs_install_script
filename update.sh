@@ -19,56 +19,95 @@ echo -ne "Enter your created username if you havent done this please do it now, 
 read username
 
 #Clean up old folders
-rm -rf ~/bitwarden_rs ~/web
+rm -rf ~/bitwarden_rs ~/web ~/vaultwarden ~/bw_web*.tar.gz
+
+#Check if showing as bitwardenrs and rename to vaultwarden
+if [ -d "/opt/vaultwarden/" ]; then
+    echo "Already running as vaultwarden nothing to do" 
+else
+    echo "Migrating to vaultwarden"
+	sudo systemctl stop bitwarden
+	sudo mv /opt/bitwardenrs /opt/vaultwarden
+	sudo mv /etc/bitwardenrs /etc/vaultwarden
+	sudo mv /etc/vaultwarden/bitwardenrs.conf /etc/vaultwarden/vaultwarden.conf
+	sudo rm /etc/systemd/system/bitwarden.service
+
+sudo touch /etc/systemd/system/vaultwarden.service
+sudo chown ${username}:${username} -R /etc/systemd/system/vaultwarden.service
+
+#Set vaultwarden Service File
+vaultwardenservice="$(cat << EOF
+[Unit]
+Description=Vaultwarden server
+After=network.target auditd.service
+
+[Service]
+RestartSec=2s
+Type=simple
+
+User=${username}
+Group=${username}
+
+EnvironmentFile=/etc/vaultwarden/vaultwarden.conf
+
+WorkingDirectory=/opt/vaultwarden/
+ExecStart=/opt/vaultwarden/vaultwarden
+Restart=always
+
+# Isolate vaultwarden from the rest of the system
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+NoNewPrivileges=true
+ProtectSystem=strict
+
+# Only allow writes to the following directory
+ReadWritePaths=/opt/vaultwarden/data/ /var/log/bitwardenrs/error.log
+
+# Set reasonable connection and process limits
+LimitNOFILE=1048576
+LimitNPROC=64
+
+[Install]
+WantedBy=multi-user.target
+
+EOF
+)"
+echo "${vaultwardenservice}" > /etc/systemd/system/vaultwarden.service
+
+sudo systemctl daemon-reload
+sudo systemctl enable vaultwarden
+sudo systemctl start vaultwarden	
+
+fi
 
 #Upgrade Rust
 curl https://sh.rustup.rs -sSf | sh
 source $HOME/.cargo/env
 
-#Download newest versions of Bitwarden RS and compile
+#Compile vaultwarden
 git clone https://github.com/dani-garcia/vaultwarden.git
 cd vaultwarden/
 git checkout
 cargo build --features sqlite --release
 cd ..
 
-#Clone and checkout repository for Bitwarden web and patch
-git clone https://github.com/bitwarden/web.git
-cd web
-git checkout
-gittagno=$(git tag --sort=v:refname | tail -n1)
-git submodule update --init --recursive
-wget https://raw.githubusercontent.com/dani-garcia/bw_web_builds/master/patches/${gittagno}.patch
-git apply ${gittagno}.patch
+#Download precompiled webvault
+VWRELEASE=$(curl -s https://api.github.com/repos/dani-garcia/bw_web_builds/releases/latest \
+| grep "tag_name" \
+| awk '{print substr($2, 2, length($2)-3) }') \
 
-#Build Web
-npm run sub:init
-npm install
-npm audit fix
-npm run dist
-cd ..
+wget https://github.com/dani-garcia/bw_web_builds/releases/download/$VWRELEASE/bw_web_$VWRELEASE.tar.gz
+
+tar -xzf bw_web_$VWRELEASE.tar.gz
 
 #Apply Updates and restart Bitwarden_RS
-sudo systemctl stop bitwarden.service
-sudo cp -r ~/vaultwarden/target/release/vaultwarden /opt/bitwardenrs
-sudo rm -rf /opt/bitwardenrs/web-vault
-sudo mv ~/web/build /opt/bitwardenrs/web-vault
-sudo chown -R ${username}:${username} /opt/bitwardenrs
-sudo systemctl start bitwarden.service
-
-## Fix for certbot auto renew
-sudo sed -i "s|/var/www/acme|/var/www/letsencrypt|g" /etc/nginx/sites-available/bitwardenrs
+sudo systemctl stop vaultwarden.service
+sudo cp -r ~/vaultwarden/target/release/vaultwarden /opt/vaultwarden
+sudo rm -rf /opt/vaultwarden/web-vault
+sudo mv ~/web-vault /opt/vaultwarden/web-vault
+sudo chown -R ${username}:${username} /opt/vaultwarden
+sudo systemctl start vaultwarden.service
 
 #restart nginx
 sudo service nginx restart
-
-#rerun certification
-sudo letsencrypt renew
-
-## Fix fail2ban
-
-sudo sed -i "s|filter = bitwarden|filter = bitwardenrs|g" /etc/fail2ban/jail.d/bitwardenrs.local
-sudo sed -i "s|filter = bitwarden-admin|filter = bitwardenrs-admin|g" /etc/fail2ban/jail.d/bitwardenrs-admin.local
-sudo systemctl restart fail2ban
-
-###Renew certs can be done by sudo letsencrypt renew (this should automatically be in /etc/cron.d/certbot)
