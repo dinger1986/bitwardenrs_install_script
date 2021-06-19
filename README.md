@@ -1,6 +1,3 @@
-# ***Not under active development, due to my company no longer using Bitwarden. Anyone is welcome to take the script and develop it further, or collaborate. If someone does and wants to let me know I can add them to the repo or remove it if they fork it. For now any issues will be closed and pull requests will not be accepted unless by someone who wants to be a collaborator, the bones are there for someone else to take this on and make it work since Bitwarden_RS was renamed to Vaultwarden***
-
-
 Vaultwarden/BitwardenRS_install_script. 
 
 Install Script for Vultwarden for Ubuntu 20.04 using https://github.com/dani-garcia/vaultwarden
@@ -13,7 +10,7 @@ Requirements 2GB Ram (perhaps overspec'd for running BitWarden_RS but much less 
 
 Prerequisites Ubuntu 20.04 Create non root user DNS record created on domain (you can get free domains from freenom.com) pointed to your external IP Ports 80, 443 and 22 opened on your firewall and pointed to the deployment machine.
 
-Install.sh will install the newest version of BitWarden_RS and Bitwarden Web.
+Install.sh will install the newest version of vaultwarden.
 
 If logged in as root add a user using these commands prior to install: $ adduser bitwardenrs $ usermod -a -G sudo bitwardenrs
 
