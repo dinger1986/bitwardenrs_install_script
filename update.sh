@@ -75,6 +75,7 @@ EOF
 )"
 echo "${vaultwardenservice}" > /etc/systemd/system/vaultwarden.service
 
+sudo systemctl unmask vaultwarden.service
 sudo systemctl daemon-reload
 sudo systemctl enable vaultwarden
 sudo systemctl start vaultwarden	
