@@ -39,6 +39,19 @@ done
 
 admintoken=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 70 | head -n 1)
 
+#Check Sudo works
+if [[ "$EUID" != 0 ]]; then
+    sudo -k # make sure to ask for password on next sudo
+    if sudo true; then
+        echo "Password ok"
+    else
+        echo "Aborting script"
+        exit 1
+    fi
+fi
+
+echo "Running Script"
+
 #Configure GIT
 sudo git config --global user.email "${email}"
 sudo git config --global user.name "${name}"
