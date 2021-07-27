@@ -18,6 +18,19 @@ fi
 echo -ne "Enter your created username if you havent done this please do it now, use ctrl+c to cancel this script and do it${NC}: "
 read username
 
+#Check Sudo works
+if [[ "$EUID" != 0 ]]; then
+    sudo -k # make sure to ask for password on next sudo
+    if sudo true; then
+        echo "Password ok"
+    else
+        echo "Aborting script"
+        exit 1
+    fi
+fi
+
+echo "Running Script"
+
 #Clean up old folders
 rm -rf ~/bitwarden_rs ~/web ~/vaultwarden ~/bw_web*.tar.gz
 
