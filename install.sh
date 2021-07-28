@@ -1,4 +1,4 @@
-####     Thanks to wh1te909 who I stole (or got inspiration) alot of this script from (first script I have ever written) 
+####     Thanks to wh1te909 who I stole (or got inspiration) alot of this script from (first script I have ever written)
 ####     and https://pieterhollander.nl/post/vaultwarden/ which I followed the steps and converted them to a script
 
 
@@ -58,7 +58,7 @@ sudo git config --global user.name "${name}"
 
 #install dependencies
 sudo apt update && apt list -u && sudo apt dist-upgrade -y
-sudo apt install dirmngr git libssl-dev pkg-config build-essential curl wget git apt-transport-https ca-certificates curl software-properties-common pwgen nginx-full letsencrypt -y
+sudo apt install dirmngr git libssl-dev pkg-config build-essential curl wget git apt-transport-https ca-certificates curl software-properties-common pwgen nginx-full letsencrypt libpq-dev pkg-config  -y
 curl -sL https://deb.nodesource.com/setup_12.x | sudo bash -
 sudo apt install nodejs -y
 curl https://sh.rustup.rs -sSf | sh
@@ -130,7 +130,7 @@ server {
     # change the file name of these logs to include your server name
     # if hosting many services...
     access_log /var/log/nginx/${domain}_access.log;
-    error_log /var/log/nginx/${domain}_error.log;  
+    error_log /var/log/nginx/${domain}_error.log;
     include includes/letsencrypt.conf;     # redirect all HTTP traffic to HTTPS.
     location / {
         return  302 https://${domain};
@@ -154,7 +154,7 @@ sudo letsencrypt certonly --webroot -w /var/www/letsencrypt -d ${domain}
 git clone https://github.com/dani-garcia/vaultwarden.git
 cd vaultwarden/
 git checkout
-cargo build --features sqlite --release
+cargo build --features postgresql --release
 cd ..
 
 #Download precompiled webvault
@@ -164,7 +164,7 @@ VWRELEASE=$(curl -s https://api.github.com/repos/dani-garcia/bw_web_builds/relea
 
 wget https://github.com/dani-garcia/bw_web_builds/releases/download/$VWRELEASE/bw_web_$VWRELEASE.tar.gz
 
-tar -xzf bw_web_$VWRELEASE.tar.gz 
+tar -xzf bw_web_$VWRELEASE.tar.gz
 
 #Create vaultwarden folder and copy
 sudo mkdir /opt/vaultwarden
@@ -253,7 +253,7 @@ LOG_FILE=/var/log/vaultwarden/error.log
 ## Log level
 ## Change the verbosity of the log output
 ## Valid values are "trace", "debug", "info", "warn", "error" and "off"
-## Setting it to "trace" or "debug" would also show logs for mounted 
+## Setting it to "trace" or "debug" would also show logs for mounted
 ## routes and static file, websocket and alive requests
 LOG_LEVEL=info
 
@@ -367,7 +367,7 @@ DOMAIN=https://${domain}
 ## Authenticator Settings
 ## Disable authenticator time drifted codes to be valid.
 ## TOTP codes of the previous and next 30 seconds will be invalid
-## 
+##
 ## According to the RFC6238 (https://tools.ietf.org/html/rfc6238),
 ## we allow by default the TOTP code which was valid one step back and one in the future.
 ## This can however allow attackers to be a bit more lucky with there attempts because there are 3 valid codes.
