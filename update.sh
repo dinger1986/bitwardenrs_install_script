@@ -103,7 +103,7 @@ source $HOME/.cargo/env
 git clone https://github.com/dani-garcia/vaultwarden.git
 cd vaultwarden/
 git checkout
-cargo build --features sqlite --release
+cargo build --features postgresql --release
 cd ..
 
 #Download precompiled webvault
