@@ -62,7 +62,7 @@ sudo apt install dirmngr git libssl-dev pkg-config build-essential curl wget git
 curl -sL https://deb.nodesource.com/setup_12.x | sudo bash -
 sudo apt install nodejs -y
 curl https://sh.rustup.rs -sSf | sh
-source /home/${username}/.cargo/env
+source ${HOME}/.cargo/env
 
 #Set firewall
 sudo ufw allow OpenSSH
