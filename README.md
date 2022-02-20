@@ -1,4 +1,5 @@
 Vaultwarden/BitwardenRS_install_script. 
+-----
 
 Install Script for Vultwarden for Ubuntu 20.04 using https://github.com/dani-garcia/vaultwarden
 
@@ -6,35 +7,51 @@ Please note this is an unofficial install script and support requests for the in
 
 This installs BitWarden_RS on Ubuntu 20.04 with SQLite, configures firewall and enables fail2ban.
 
-Requirements 2GB Ram (perhaps overspec'd for running BitWarden_RS but much less compile will crash)
+## Hardware Requirements 
 
-Prerequisites Ubuntu 20.04 Create non root user DNS record created on domain (you can get free domains from freenom.com) pointed to your external IP Ports 80, 443 and 22 opened on your firewall and pointed to the deployment machine.
+- 2GB RAM (perhaps overspec'd for running BitWarden_RS but much less compile will crash)
+
+## Prerequisites 
+
+- Ubuntu 20.04 
+- Create non root user 
+- DNS record created on domain (you can get free domains from freenom.com) pointed to your external IP 
+- Ports 80, 443 and 22 opened on your firewall and pointed to the deployment machine.
+
+## Installation
 
 Install.sh will install the newest version of vaultwarden.
 
-If logged in as root add a user using these commands prior to install: $ adduser bitwardenrs $ usermod -a -G sudo bitwardenrs
 
-Switch to bitwardenrs user (script won't run as root) $ su bitwardenrs
+```bash
+# If logged in as root add a user using these commands prior to install: 
+$ adduser bitwardenrs 
+$ usermod -a -G sudo bitwardenrs
+# Switch to bitwardenrs user (script won't run as root) 
+$ su bitwardenrs
+# Change Directory to bitwardenrs home 
+$ cd ~/
+# Download the install script from github 
+$ wget https://raw.githubusercontent.com/dinger1986/bitwardenrs_install_script/master/install.sh
+# Set Script as executable 
+$ chmod +x install.sh
+# Run script 
+$ ./install.sh
+```
 
-Change Directory to bitwardenrs home $ cd ~/
-
-Download the install script from github $ wget https://raw.githubusercontent.com/dinger1986/bitwardenrs_install_script/master/install.sh
-
-Set Script as executable $ chmod +x install.sh
-
-Run script $ ./install.sh
-
-Fill in info as requested as the script runs
+Fill in info as requested as the script runs.
 
 Once complete go to https://yourdomain/admin
 
-To update
+## Update
 
-Download the update script from github $ wget https://raw.githubusercontent.com/dinger1986/bitwardenrs_install_script/master/update.sh
+```bash
+# Download the update script from github 
+$ wget https://raw.githubusercontent.com/dinger1986/bitwardenrs_install_script/master/update.sh
+# Set Script as executable 
+$ chmod +x update.sh
+# Run script $ ./update.sh
+```
 
-Set Script as executable $ chmod +x update.sh
-
-Run script $ ./update.sh
-
-Fill in info as requested as the script runs
+Fill in info as requested as the script runs.
 
