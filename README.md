@@ -7,7 +7,7 @@ Please note this is an unofficial install script and support requests for the in
 
 This installs BitWarden_RS on Ubuntu 20.04 with SQLite, configures firewall and enables fail2ban.
 
-## Hardeware Requirements 
+## Hardware Requirements 
 
 - 2GB RAM (perhaps overspec'd for running BitWarden_RS but much less compile will crash)
 
