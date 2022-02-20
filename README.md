@@ -1,6 +1,6 @@
 Vaultwarden_install_script.
 
-Adapted from dinger1986/bitwardenrs_install_script for PostgreSQL DB. 
+Adapted from dinger1986/bitwardenrs_install_script for PostgreSQL DB.
 
 Install Script for Vaultwarden for Ubuntu 20.04 using https://github.com/dani-garcia/vaultwarden
 
@@ -26,13 +26,13 @@ Install.sh will install the newest version of vaultwarden.
 If logged in as root add a user using these commands prior to install:
 
 ```
-$ adduser bitwardenrs 
-$ usermod -a -G sudo bitwardenrs
+$ adduser vaultwarden
+$ usermod -a -G sudo vaultwarden
 ```
 
-Switch to bitwardenrs user (script won't run as root) `$ su bitwardenrs`
+Switch to vaultwarden user (script won't run as root) `$ su vaultwarden`
 
-Change Directory to bitwardenrs home `$ cd ~/`
+Change Directory to vaultwarden home `$ cd ~/`
 
 Download the install script from github `$ wget https://raw.githubusercontent.com/nicolas-graves/bitwardenrs_install_script/master/install.sh`
 
