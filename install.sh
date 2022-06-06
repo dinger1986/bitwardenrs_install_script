@@ -1,11 +1,12 @@
 ####     Thanks to wh1te909 who I stole (or got inspiration) alot of this script from (first script I have ever written) 
 ####     and https://pieterhollander.nl/post/vaultwarden/ which I followed the steps and converted them to a script
 
+#### Adapted to run with PostgreSQL and behind a dedicated reverse proxy
 
-#check if running on ubuntu 20.04
-UBU20=$(grep 20.04 "/etc/"*"release")
-if ! [[ $UBU20 ]]; then
-  echo -ne "\033[0;31mThis script will only work on Ubuntu 20.04\e[0m\n"
+#check if running on ubuntu 22.04
+UBU22=$(grep 22.04 "/etc/"*"release")
+if ! [[ $UBU22 ]]; then
+  echo -ne "\033[0;31mThis script will only work on Ubuntu 22.04\e[0m\n"
   exit 1
 fi
 
@@ -53,30 +54,49 @@ fi
 echo "Running Script"
 
 #Configure GIT
-sudo git config --global user.email "${email}"
-sudo git config --global user.name "${name}"
+#sudo git config --global user.email "${email}"
+#sudo git config --global user.name "${name}"
 
 #install dependencies
 sudo apt update && apt list -u && sudo apt dist-upgrade -y
-sudo apt install dirmngr git libssl-dev pkg-config build-essential curl wget git apt-transport-https ca-certificates curl software-properties-common pwgen nginx-full letsencrypt -y
-curl -sL https://deb.nodesource.com/setup_12.x | sudo bash -
+#sudo apt install dirmngr git libssl-dev pkg-config build-essential curl wget git apt-transport-https ca-certificates curl software-properties-common pwgen nginx-full letsencrypt -y
+sudo apt install postgresql postgresql-contrib libpq-dev dirmngr git libssl-dev pkg-config build-essential curl wget apt-transport-https ca-certificates software-properties-common pwgen nginx -y
+curl -sL https://deb.nodesource.com/setup_16.x | sudo bash -
 sudo apt install nodejs -y
 curl https://sh.rustup.rs -sSf | sh
 source ${HOME}/.cargo/env
 
-#Set firewall
-sudo ufw allow OpenSSH
-sudo ufw allow "Nginx Full"
-sudo ufw enable
 
+### Configure PostgreSQL DB
+#sudo -i -u postgres
+#sudo -u postgres createuser
+
+# Random password
+postgresql_pwd=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 24 | head -n 1)
+
+sudo -u postgres psql <<EOF
+CREATE DATABASE vaultwarden;
+CREATE USER vaultwarden WITH ENCRYPTED PASSWORD '${postgresql_pwd}';
+GRANT all privileges ON database vaultwarden TO vaultwarden;
+EOF
+
+echo "Successfully setup PostgreSQL DB vaultwarden with user vaultwarden and password ${postgresql_pwd}"
+
+
+#Set firewall
+#sudo ufw allow OpenSSH
+#sudo ufw allow "Nginx Full"
+#sudo ufw enable
+
+######### SKIPPING LETSENCRYPT BECAUSE IT WILL BE RUN BEHIND A REVERSE PROXY
 #####Letsencrypt and web
 
 #Make directory
-sudo mkdir /etc/nginx/includes
-sudo chown ${username}:${username} -R /etc/nginx/includes
+#sudo mkdir /etc/nginx/includes
+#sudo chown ${username}:${username} -R /etc/nginx/includes
 
 #Set Letsencrypt file
-letsencrypt="$(cat << EOF
+#letsencrypt="$(cat << EOF
 #############################################################################
 # Configuration file for Let's Encrypt ACME Challenge location
 # This file is already included in listen_xxx.conf files.
@@ -95,66 +115,68 @@ letsencrypt="$(cat << EOF
 # https://community.letsencrypt.org/t/howto-easy-cert-generation-and-renewal-with-nginx/3491
 #
 # Rule for legitimate ACME Challenge requests
-location ^~ /.well-known/acme-challenge/ {
-    default_type "text/plain";
-    # this can be any directory, but this name keeps it clear
-    root /var/www/letsencrypt;
-}
+#location ^~ /.well-known/acme-challenge/ {
+#    default_type "text/plain";
+#    # this can be any directory, but this name keeps it clear
+#    root /var/www/letsencrypt;
+#}
 # Hide /acme-challenge subdirectory and return 404 on all requests.
 # It is somewhat more secure than letting Nginx return 403.
 # Ending slash is important!
-location = /.well-known/acme-challenge/ {
-    return 404;
-}
+#location = /.well-known/acme-challenge/ {
+#    return 404;
+#}
 
-EOF
-)"
-echo "${letsencrypt}" > /etc/nginx/includes/letsencrypt.conf
+#EOF
+#)"
+#echo "${letsencrypt}" > /etc/nginx/includes/letsencrypt.conf
 
-sudo mkdir /var/www/letsencrypt
+#sudo mkdir /var/www/letsencrypt
 
-sudo chown ${username}:${username} -R /etc/nginx/sites-available/
+#sudo chown ${username}:${username} -R /etc/nginx/sites-available/
 
 #Set vaultwarden web file
-vaultwardenconf="$(cat << EOF
+#vaultwardenconf="$(cat << EOF
 #
 # HTTP does *soft* redirect to HTTPS
 #
-server {
-    # add [IP-Address:]80 in the next line if you want to limit this to a single interface
-    listen 0.0.0.0:80;
-   server_name ${domain};
-    root /home/data/${domain};
-    index index.php;
+#server {
+#    # add [IP-Address:]80 in the next line if you want to limit this to a single interface
+#    listen 0.0.0.0:80;
+#    server_name ${domain};
+#    root /home/data/${domain};
+#    index index.php;
 
-    # change the file name of these logs to include your server name
-    # if hosting many services...
-    access_log /var/log/nginx/${domain}_access.log;
-    error_log /var/log/nginx/${domain}_error.log;  
-    include includes/letsencrypt.conf;     # redirect all HTTP traffic to HTTPS.
-    location / {
-        return  302 https://${domain};
-    }
-}
-
-EOF
-)"
-echo "${vaultwardenconf}" > /etc/nginx/sites-available/vaultwarden
+#    # change the file name of these logs to include your server name
+#    # if hosting many services...
+#    access_log /var/log/nginx/${domain}_access.log;
+#    error_log /var/log/nginx/${domain}_error.log;  
+#    include includes/letsencrypt.conf;     
+#    # redirect all HTTP traffic to HTTPS.
+#    location / {
+#        return  302 https://${domain};
+#    }
+#}
+#
+#EOF
+#)"
+#echo "${vaultwardenconf}" > /etc/nginx/sites-available/vaultwarden
 
 #make vaultwarden site live
-sudo ln /etc/nginx/sites-available/vaultwarden /etc/nginx/sites-enabled/vaultwarden
+#sudo ln /etc/nginx/sites-available/vaultwarden /etc/nginx/sites-enabled/vaultwarden
 
 #restart nginx
-sudo service nginx restart
+#sudo service nginx restart
 
 #run certification
-sudo letsencrypt certonly --webroot -w /var/www/letsencrypt -d ${domain}
+#sudo letsencrypt certonly --webroot -w /var/www/letsencrypt -d ${domain}
 
 #Compile vaultwarden
 git clone https://github.com/dani-garcia/vaultwarden.git
 cd vaultwarden/
 git checkout
-cargo build --features sqlite --release
+#cargo build --features sqlite --release
+cargo build --features postgresql --release
 cd ..
 
 #Download precompiled webvault
@@ -164,7 +186,7 @@ VWRELEASE=$(curl -s https://api.github.com/repos/dani-garcia/bw_web_builds/relea
 
 wget https://github.com/dani-garcia/bw_web_builds/releases/download/$VWRELEASE/bw_web_$VWRELEASE.tar.gz
 
-tar -xzf bw_web_$VWRELEASE.tar.gz 
+tar -xzf bw_web_$VWRELEASE.tar.gz
 
 #Create vaultwarden folder and copy
 sudo mkdir /opt/vaultwarden
@@ -200,7 +222,9 @@ vaultwardenconf="$(cat << EOF
 ## - https://docs.diesel.rs/diesel/pg/struct.PgConnection.html
 ## - https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
 ## DATABASE_URL=mysql://vwarden:${mysqlpwd}@localhost:3306/vwarden
-
+#DATABASE_URL=postgresql://vwarden:${mysqlpwd}@localhost:3306/vwarden
+#DATABASE_URL=postgresql://[[user]:[password]@]host[:port][/database]
+DATABASE_URL=postgresql://vaultwarden:${postgresql_pwd}@localhost:5432/vaultwarden
 
 ## Individual folders, these override %DATA_FOLDER%
 # RSA_KEY_FILENAME=data/rsa_key
@@ -367,7 +391,7 @@ DOMAIN=https://${domain}
 ## Authenticator Settings
 ## Disable authenticator time drifted codes to be valid.
 ## TOTP codes of the previous and next 30 seconds will be invalid
-## 
+##
 ## According to the RFC6238 (https://tools.ietf.org/html/rfc6238),
 ## we allow by default the TOTP code which was valid one step back and one in the future.
 ## This can however allow attackers to be a bit more lucky with there attempts because there are 3 valid codes.
@@ -413,8 +437,8 @@ touch /var/log/vaultwarden/error.log
 sudo service nginx stop
 
 #Remove vaultwarden config to add SSL
-sudo rm /etc/nginx/sites-enabled/vaultwarden
-sudo rm /etc/nginx/sites-available/vaultwarden
+#sudo rm /etc/nginx/sites-enabled/vaultwarden
+#sudo rm /etc/nginx/sites-available/vaultwarden
 sudo chown ${username}:${username} -R /etc/nginx/sites-available
 
 touch /etc/nginx/sites-available/vaultwarden
@@ -423,37 +447,38 @@ touch /etc/nginx/sites-available/vaultwarden
 vaultwardenconf2="$(cat << EOF
 server {
     listen 80;
-    server_name ${domain};
+#    server_name ${domain};
 
-    location /.well-known/acme-challenge/ {
-        root /var/www/letsencrypt;
-    }
+#    location /.well-known/acme-challenge/ {
+#        root /var/www/letsencrypt;
+#    }
 
-    location / {
-        return 301 https://${domain};
-    }
-}
+#    location / {
+#        return 301 https://${domain};
+#    }
+#}
 
-server {
-    listen 443 ssl http2;
-    server_name ${domain};
+#server {
+#    listen 443 ssl http2;
+#    server_name ${domain};
 
     client_max_body_size 128M;
 
-    ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_prefer_server_ciphers on;
-    ssl_ciphers "ECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH";
-    ssl_ecdh_curve secp384r1;
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_tickets off;
-    ssl_stapling on;
-    ssl_stapling_verify on;
+#    ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;
+#    ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;
+#    ssl_protocols TLSv1.2 TLSv1.3;
+#    ssl_prefer_server_ciphers on;
+#    ssl_ciphers "ECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH";
+#    ssl_ecdh_curve secp384r1;
+#    ssl_session_cache shared:SSL:10m;
+#    ssl_session_tickets off;
+#    ssl_stapling on;
+#    ssl_stapling_verify on;
     resolver 127.0.0.1 valid=300s;
     resolver_timeout 5s;
     add_header X-Content-Type-Options nosniff;
-    add_header Strict-Transport-Security "max-age=63072000; preload";
+#    add_header Strict-Transport-Security "max-age=63072000; preload";
+    add_header Strict-Transport-Security "max-age=63072000;";
     keepalive_timeout 300s;
 
     location / {
