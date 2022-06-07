@@ -74,14 +74,11 @@ source ${HOME}/.cargo/env
 # Random password
 postgresql_pwd=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 24 | head -n 1)
 
-sudo -u postgres psql <<EOF
-CREATE DATABASE vaultwarden;
-CREATE USER vaultwarden WITH ENCRYPTED PASSWORD '${postgresql_pwd}';
-GRANT all privileges ON database vaultwarden TO vaultwarden;
-EOF
+sudo -u postgres psql -c "CREATE DATABASE vaultwarden;"
+sudo -u postgres psql -c "CREATE USER vaultwarden WITH ENCRYPTED PASSWORD '${postgresql_pwd}';"
+sudo -u postgres psql -c "GRANT all privileges ON database vaultwarden TO vaultwarden;"
 
 echo "Successfully setup PostgreSQL DB vaultwarden with user vaultwarden and password ${postgresql_pwd}"
-
 
 #Set firewall
 #sudo ufw allow OpenSSH
@@ -180,9 +177,7 @@ cargo build --features postgresql --release
 cd ..
 
 #Download precompiled webvault
-VWRELEASE=$(curl -s https://api.github.com/repos/dani-garcia/bw_web_builds/releases/latest \
-| grep "tag_name" \
-| awk '{print substr($2, 2, length($2)-3) }') \
+VWRELEASE=$(curl -s https://api.github.com/repos/dani-garcia/bw_web_builds/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 
 wget https://github.com/dani-garcia/bw_web_builds/releases/download/$VWRELEASE/bw_web_$VWRELEASE.tar.gz
 
