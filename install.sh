@@ -429,19 +429,19 @@ sudo chown -R ${username}:${username} /var/log/vaultwarden
 touch /var/log/vaultwarden/error.log
 
 #Stop nginx to remove file
-sudo service nginx stop
+#sudo service nginx stop
 
 #Remove vaultwarden config to add SSL
 #sudo rm /etc/nginx/sites-enabled/vaultwarden
 #sudo rm /etc/nginx/sites-available/vaultwarden
-sudo chown ${username}:${username} -R /etc/nginx/sites-available
+#sudo chown ${username}:${username} -R /etc/nginx/sites-available
 
-touch /etc/nginx/sites-available/vaultwarden
+#touch /etc/nginx/sites-available/vaultwarden
 
 #Set vaultwarden web file with SSL
-vaultwardenconf2="$(cat << EOF
-server {
-    listen 80;
+#vaultwardenconf2="$(cat << EOF
+#server {
+#    listen 80;
 #    server_name ${domain};
 
 #    location /.well-known/acme-challenge/ {
@@ -457,7 +457,7 @@ server {
 #    listen 443 ssl http2;
 #    server_name ${domain};
 
-    client_max_body_size 128M;
+#    client_max_body_size 128M;
 
 #    ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;
 #    ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;
@@ -469,44 +469,44 @@ server {
 #    ssl_session_tickets off;
 #    ssl_stapling on;
 #    ssl_stapling_verify on;
-    resolver 127.0.0.1 valid=300s;
-    resolver_timeout 5s;
-    add_header X-Content-Type-Options nosniff;
+#    resolver 127.0.0.1 valid=300s;
+#    resolver_timeout 5s;
+#    add_header X-Content-Type-Options nosniff;
 #    add_header Strict-Transport-Security "max-age=63072000; preload";
-    add_header Strict-Transport-Security "max-age=63072000;";
-    keepalive_timeout 300s;
+#    add_header Strict-Transport-Security "max-age=63072000;";
+#    keepalive_timeout 300s;
 
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header X-Forwarded-Host server_name;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
+#    location / {
+#        proxy_pass http://127.0.0.1:8000;
+#        proxy_set_header X-Forwarded-Host server_name;
+#        proxy_set_header X-Real-IP \$remote_addr;
+#        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+#        proxy_set_header X-Forwarded-Proto \$scheme;
+#    }
 
-    location /notifications/hub {
-        proxy_pass http://127.0.0.1:3012;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-    }
+#    location /notifications/hub {
+#        proxy_pass http://127.0.0.1:3012;
+#        proxy_set_header Upgrade \$http_upgrade;
+#        proxy_set_header Connection "upgrade";
+#    }
 
-    location /notifications/hub/negotiate {
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_pass http://127.0.0.1:8000;
-    }
-}
-EOF
-)"
-echo "${vaultwardenconf2}" > /etc/nginx/sites-available/vaultwarden
+#    location /notifications/hub/negotiate {
+#        proxy_set_header Host \$host;
+#        proxy_set_header X-Real-IP \$remote_addr;
+#        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+#        proxy_set_header X-Forwarded-Proto \$scheme;
+#        proxy_pass http://127.0.0.1:8000;
+#    }
+#}
+#EOF
+#)"
+#echo "${vaultwardenconf2}" > /etc/nginx/sites-available/vaultwarden
 
 #reenable vaultwarden site
-sudo ln /etc/nginx/sites-available/vaultwarden /etc/nginx/sites-enabled/vaultwarden
+#sudo ln /etc/nginx/sites-available/vaultwarden /etc/nginx/sites-enabled/vaultwarden
 
 #Start nginx with SSL
-sudo service nginx start
+#sudo service nginx start
 
 sudo touch /etc/systemd/system/vaultwarden.service
 sudo chown ${username}:${username} -R /etc/systemd/system/vaultwarden.service
@@ -554,6 +554,7 @@ echo "${vaultwardenservice}" > /etc/systemd/system/vaultwarden.service
 sudo systemctl daemon-reload
 sudo systemctl enable vaultwarden
 sudo systemctl start vaultwarden
+
 
 #####Fail2ban setup
 sudo apt install -y fail2ban
