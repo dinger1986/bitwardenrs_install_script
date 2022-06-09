@@ -456,12 +456,4 @@ sudo systemctl restart fail2ban
 printf >&2 "Please go to admin url: https://${domain}/admin\n\n"
 printf >&2 "Enter ${admintoken} to gain access, please save this somewhere!!\n\n"
 
-echo "Press any key to finish install"
-while [ true ] ; do
-read -t 3 -n 1
-if [ $? = 0 ] ; then
-exit ;
-else
-echo "waiting for the keypress"
-fi
-done
+echo "Installation complete!"
