@@ -1,7 +1,7 @@
-####     Thanks to wh1te909 who I stole (or got inspiration) alot of this script from (first script I have ever written) 
+####     Thanks to wh1te909 who I stole (or got inspiration) alot of this script from (first script I have ever written)
 ####     and https://pieterhollander.nl/post/vaultwarden/ which I followed the steps and converted them to a script
 
-#### Adapted to run with PostgreSQL and behind a dedicated reverse proxy
+#### Adapted to run on Ubuntu 22.04 with PostgreSQL and behind a dedicated reverse proxy (configured on a different machine with SSL enabled)
 
 #check if running on ubuntu 22.04
 UBU22=$(grep 22.04 "/etc/"*"release")
@@ -57,13 +57,8 @@ fi
 
 echo "Running Script"
 
-#Configure GIT
-#sudo git config --global user.email "${email}"
-#sudo git config --global user.name "${name}"
-
 #install dependencies
 sudo apt update && apt list -u && sudo apt dist-upgrade -y
-#sudo apt install dirmngr git libssl-dev pkg-config build-essential curl wget git apt-transport-https ca-certificates curl software-properties-common pwgen nginx-full letsencrypt -y
 sudo apt install postgresql postgresql-contrib libpq-dev dirmngr git libssl-dev pkg-config build-essential curl wget apt-transport-https ca-certificates software-properties-common pwgen -y
 curl -sL https://deb.nodesource.com/setup_16.x | sudo bash -
 sudo apt install nodejs -y
@@ -72,105 +67,17 @@ source ${HOME}/.cargo/env
 
 
 ### Configure PostgreSQL DB
-#sudo -i -u postgres
-#sudo -u postgres createuser
-
 # Random password
 postgresql_pwd=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 24 | head -n 1)
-
 sudo -u postgres psql -c "CREATE DATABASE vaultwarden;"
 sudo -u postgres psql -c "CREATE USER vaultwarden WITH ENCRYPTED PASSWORD '${postgresql_pwd}';"
 sudo -u postgres psql -c "GRANT all privileges ON database vaultwarden TO vaultwarden;"
-
 echo "Successfully setup PostgreSQL DB vaultwarden with user vaultwarden and password ${postgresql_pwd}"
 
 #Set firewall
 #sudo ufw allow OpenSSH
 #sudo ufw allow "Nginx Full"
 #sudo ufw enable
-
-######### SKIPPING LETSENCRYPT BECAUSE IT WILL BE RUN BEHIND A REVERSE PROXY
-#####Letsencrypt and web
-
-#Make directory
-#sudo mkdir /etc/nginx/includes
-#sudo chown ${username}:${username} -R /etc/nginx/includes
-
-#Set Letsencrypt file
-#letsencrypt="$(cat << EOF
-#############################################################################
-# Configuration file for Let's Encrypt ACME Challenge location
-# This file is already included in listen_xxx.conf files.
-# Do NOT include it separately!
-#############################################################################
-#
-# This config enables to access /.well-known/acme-challenge/xxxxxxxxxxx
-# on all our sites (HTTP), including all subdomains.
-# This is required by ACME Challenge (webroot authentication).
-# You can check that this location is working by placing ping.txt here:
-# /var/www/letsencrypt/.well-known/acme-challenge/ping.txt
-# And pointing your browser to:
-# http://xxx.domain.tld/.well-known/acme-challenge/ping.txt
-#
-# Sources:
-# https://community.letsencrypt.org/t/howto-easy-cert-generation-and-renewal-with-nginx/3491
-#
-# Rule for legitimate ACME Challenge requests
-#location ^~ /.well-known/acme-challenge/ {
-#    default_type "text/plain";
-#    # this can be any directory, but this name keeps it clear
-#    root /var/www/letsencrypt;
-#}
-# Hide /acme-challenge subdirectory and return 404 on all requests.
-# It is somewhat more secure than letting Nginx return 403.
-# Ending slash is important!
-#location = /.well-known/acme-challenge/ {
-#    return 404;
-#}
-
-#EOF
-#)"
-#echo "${letsencrypt}" > /etc/nginx/includes/letsencrypt.conf
-
-#sudo mkdir /var/www/letsencrypt
-
-#sudo chown ${username}:${username} -R /etc/nginx/sites-available/
-
-#Set vaultwarden web file
-#vaultwardenconf="$(cat << EOF
-#
-# HTTP does *soft* redirect to HTTPS
-#
-#server {
-#    # add [IP-Address:]80 in the next line if you want to limit this to a single interface
-#    listen 0.0.0.0:80;
-#    server_name ${domain};
-#    root /home/data/${domain};
-#    index index.php;
-
-#    # change the file name of these logs to include your server name
-#    # if hosting many services...
-#    access_log /var/log/nginx/${domain}_access.log;
-#    error_log /var/log/nginx/${domain}_error.log;  
-#    include includes/letsencrypt.conf;     
-#    # redirect all HTTP traffic to HTTPS.
-#    location / {
-#        return  302 https://${domain};
-#    }
-#}
-#
-#EOF
-#)"
-#echo "${vaultwardenconf}" > /etc/nginx/sites-available/vaultwarden
-
-#make vaultwarden site live
-#sudo ln /etc/nginx/sites-available/vaultwarden /etc/nginx/sites-enabled/vaultwarden
-
-#restart nginx
-#sudo service nginx restart
-
-#run certification
-#sudo letsencrypt certonly --webroot -w /var/www/letsencrypt -d ${domain}
 
 #Compile vaultwarden
 git clone https://github.com/dani-garcia/vaultwarden.git
@@ -433,86 +340,6 @@ sudo chown ${username}:${username} /etc/vaultwarden/vaultwarden.conf
 sudo mkdir /var/log/vaultwarden
 sudo chown -R ${username}:${username} /var/log/vaultwarden
 touch /var/log/vaultwarden/error.log
-
-#Stop nginx to remove file
-#sudo service nginx stop
-
-#Remove vaultwarden config to add SSL
-#sudo rm /etc/nginx/sites-enabled/vaultwarden
-#sudo rm /etc/nginx/sites-available/vaultwarden
-#sudo chown ${username}:${username} -R /etc/nginx/sites-available
-
-#touch /etc/nginx/sites-available/vaultwarden
-
-#Set vaultwarden web file with SSL
-#vaultwardenconf2="$(cat << EOF
-#server {
-#    listen 80;
-#    server_name ${domain};
-
-#    location /.well-known/acme-challenge/ {
-#        root /var/www/letsencrypt;
-#    }
-
-#    location / {
-#        return 301 https://${domain};
-#    }
-#}
-
-#server {
-#    listen 443 ssl http2;
-#    server_name ${domain};
-
-#    client_max_body_size 128M;
-
-#    ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;
-#    ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;
-#    ssl_protocols TLSv1.2 TLSv1.3;
-#    ssl_prefer_server_ciphers on;
-#    ssl_ciphers "ECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH";
-#    ssl_ecdh_curve secp384r1;
-#    ssl_session_cache shared:SSL:10m;
-#    ssl_session_tickets off;
-#    ssl_stapling on;
-#    ssl_stapling_verify on;
-#    resolver 127.0.0.1 valid=300s;
-#    resolver_timeout 5s;
-#    add_header X-Content-Type-Options nosniff;
-#    add_header Strict-Transport-Security "max-age=63072000; preload";
-#    add_header Strict-Transport-Security "max-age=63072000;";
-#    keepalive_timeout 300s;
-
-#    location / {
-#        proxy_pass http://127.0.0.1:8000;
-#        proxy_set_header X-Forwarded-Host server_name;
-#        proxy_set_header X-Real-IP \$remote_addr;
-#        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-#        proxy_set_header X-Forwarded-Proto \$scheme;
-#    }
-
-#    location /notifications/hub {
-#        proxy_pass http://127.0.0.1:3012;
-#        proxy_set_header Upgrade \$http_upgrade;
-#        proxy_set_header Connection "upgrade";
-#    }
-
-#    location /notifications/hub/negotiate {
-#        proxy_set_header Host \$host;
-#        proxy_set_header X-Real-IP \$remote_addr;
-#        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-#        proxy_set_header X-Forwarded-Proto \$scheme;
-#        proxy_pass http://127.0.0.1:8000;
-#    }
-#}
-#EOF
-#)"
-#echo "${vaultwardenconf2}" > /etc/nginx/sites-available/vaultwarden
-
-#reenable vaultwarden site
-#sudo ln /etc/nginx/sites-available/vaultwarden /etc/nginx/sites-enabled/vaultwarden
-
-#Start nginx with SSL
-#sudo service nginx start
 
 sudo touch /etc/systemd/system/vaultwarden.service
 sudo chown ${username}:${username} -R /etc/systemd/system/vaultwarden.service
