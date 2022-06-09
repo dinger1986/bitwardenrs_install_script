@@ -20,17 +20,6 @@ fi
 echo -ne "Enter your created username if you havent done this please do it now, use ctrl+c to cancel this script and do it${NC}: "
 read username
 
-#Set email address
-echo -ne "Enter your Email Address${NC}: "
-read email
-
-#Set Name
-while [[ $name != *[.]* ]]
-do
-echo -ne "Enter your Name Firstname.Lastname${NC}: "
-read name
-done
-
 #Enter domain
 while [[ $domain != *[.]*[.]* ]]
 do
