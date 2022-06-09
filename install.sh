@@ -38,6 +38,10 @@ echo -ne "Enter your Domain${NC}: "
 read domain
 done
 
+#Local server IP
+ip4=$(/sbin/ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1)
+echo "Local IP:$ip4"
+
 admintoken=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 70 | head -n 1)
 
 #Check Sudo works
@@ -60,7 +64,7 @@ echo "Running Script"
 #install dependencies
 sudo apt update && apt list -u && sudo apt dist-upgrade -y
 #sudo apt install dirmngr git libssl-dev pkg-config build-essential curl wget git apt-transport-https ca-certificates curl software-properties-common pwgen nginx-full letsencrypt -y
-sudo apt install postgresql postgresql-contrib libpq-dev dirmngr git libssl-dev pkg-config build-essential curl wget apt-transport-https ca-certificates software-properties-common pwgen nginx -y
+sudo apt install postgresql postgresql-contrib libpq-dev dirmngr git libssl-dev pkg-config build-essential curl wget apt-transport-https ca-certificates software-properties-common pwgen -y
 curl -sL https://deb.nodesource.com/setup_16.x | sudo bash -
 sudo apt install nodejs -y
 curl https://sh.rustup.rs -sSf | sh
@@ -185,8 +189,8 @@ tar -xzf bw_web_$VWRELEASE.tar.gz
 
 #Create vaultwarden folder and copy
 sudo mkdir /opt/vaultwarden
-sudo cp -r ~/vaultwarden/target/release/vaultwarden /opt/vaultwarden
-sudo mv ~/web-vault /opt/vaultwarden/web-vault
+sudo cp -r vaultwarden/target/release/vaultwarden /opt/vaultwarden
+sudo mv web-vault /opt/vaultwarden/web-vault
 sudo mkdir /opt/vaultwarden/data
 sudo mkdir /etc/vaultwarden
 sudo chown ${username}:${username} -R /etc/vaultwarden
@@ -249,8 +253,9 @@ DATABASE_URL=postgresql://vaultwarden:${postgresql_pwd}@localhost:5432/vaultward
 WEBSOCKET_ENABLED=true
 
 ## Controls the WebSocket server address and port
-WEBSOCKET_ADDRESS=127.0.0.1
-#WEBSOCKET_PORT=3012
+#WEBSOCKET_ADDRESS=127.0.0.1
+WEBSOCKET_ADDRESS=${ip4}
+WEBSOCKET_PORT=3012
 
 ## Enable extended logging, which shows timestamps and targets in the logs
 # EXTENDED_LOGGING=true
@@ -397,7 +402,8 @@ DOMAIN=https://${domain}
 
 ## Rocket specific settings, check Rocket documentation to learn more
 # ROCKET_ENV=staging
-ROCKET_ADDRESS=127.0.0.1
+#ROCKET_ADDRESS=127.0.0.1
+ROCKET_ADDRESS=${ip4}
 ROCKET_PORT=8000
 # ROCKET_TLS={certs="/path/to/certs.pem",key="/path/to/key.pem"}
 
@@ -554,7 +560,6 @@ echo "${vaultwardenservice}" > /etc/systemd/system/vaultwarden.service
 sudo systemctl daemon-reload
 sudo systemctl enable vaultwarden
 sudo systemctl start vaultwarden
-
 
 #####Fail2ban setup
 sudo apt install -y fail2ban
