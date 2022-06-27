@@ -32,7 +32,7 @@ $ su vaultwarden
 # Change Directory to vaultwarden home 
 $ cd ~/
 # Download the install script from github 
-$ wget https://raw.githubusercontent.com/remz1337/bitwardenrs_install_script/jammy/install.sh
+$ wget https://raw.githubusercontent.com/dinger1986/bitwardenrs_install_script/master/install.sh
 # Set Script as executable 
 $ chmod +x install.sh
 # Run script 
