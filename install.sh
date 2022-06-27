@@ -1,7 +1,7 @@
 ####     Thanks to wh1te909 who I stole (or got inspiration) alot of this script from (first script I have ever written)
 ####     and https://pieterhollander.nl/post/vaultwarden/ which I followed the steps and converted them to a script
 
-#### Adapted to run on Ubuntu 22.04 with PostgreSQL and behind a dedicated reverse proxy (configured on a different machine with SSL enabled)
+#### Adapted to run on Ubuntu 22.04 with PostgreSQL and (optional) behind a dedicated reverse proxy (configured on a different machine with SSL enabled)
 
 #check if running on ubuntu 22.04
 UBU22=$(grep 22.04 "/etc/"*"release")
@@ -27,9 +27,23 @@ echo -ne "Enter your Domain${NC}: "
 read domain
 done
 
+#Option to install Nginx+Letsencrypt
+enable_nginx=1
+read -p "Do you wish to install with Nginx and Letsencrypt? [Y/N, Default:Yes] " yn
+case $yn in
+    [Nn]* ) enable_nginx=0;;
+    * ) enable_nginx=1;;
+esac
+
 #Local server IP
 ip4=$(/sbin/ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1)
 echo "Local IP:$ip4"
+
+if [ $enable_nginx -eq 1 ]; then
+    vw_ip="127.0.0.1"
+else
+    vw_ip=$ip4
+fi
 
 admintoken=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 70 | head -n 1)
 
@@ -49,11 +63,13 @@ echo "Running Script"
 #install dependencies
 sudo apt update && apt list -u && sudo apt dist-upgrade -y
 sudo apt install postgresql postgresql-contrib libpq-dev dirmngr git libssl-dev pkg-config build-essential curl wget apt-transport-https ca-certificates software-properties-common pwgen -y
+if [ $enable_nginx -eq 1 ]; then
+    sudo apt install nginx-full letsencrypt -y
+fi
 curl -sL https://deb.nodesource.com/setup_16.x | sudo bash -
 sudo apt install nodejs -y
 curl https://sh.rustup.rs -sSf | sh
 source ${HOME}/.cargo/env
-
 
 ### Configure PostgreSQL DB
 # Random password
@@ -63,10 +79,91 @@ sudo -u postgres psql -c "CREATE USER vaultwarden WITH ENCRYPTED PASSWORD '${pos
 sudo -u postgres psql -c "GRANT all privileges ON database vaultwarden TO vaultwarden;"
 echo "Successfully setup PostgreSQL DB vaultwarden with user vaultwarden and password ${postgresql_pwd}"
 
-#Set firewall
-#sudo ufw allow OpenSSH
-#sudo ufw allow "Nginx Full"
-#sudo ufw enable
+if [ $enable_nginx -eq 1 ]; then
+    #Set firewall
+    sudo ufw allow OpenSSH
+    sudo ufw allow "Nginx Full"
+    sudo ufw enable
+
+    #####Letsencrypt and web
+
+    #Make directory
+    sudo mkdir /etc/nginx/includes
+    sudo chown ${username}:${username} -R /etc/nginx/includes
+
+    #Set Letsencrypt file
+    letsencrypt="$(cat << EOF
+#############################################################################
+# Configuration file for Let's Encrypt ACME Challenge location
+# This file is already included in listen_xxx.conf files.
+# Do NOT include it separately!
+#############################################################################
+#
+# This config enables to access /.well-known/acme-challenge/xxxxxxxxxxx
+# on all our sites (HTTP), including all subdomains.
+# This is required by ACME Challenge (webroot authentication).
+# You can check that this location is working by placing ping.txt here:
+# /var/www/letsencrypt/.well-known/acme-challenge/ping.txt
+# And pointing your browser to:
+# http://xxx.domain.tld/.well-known/acme-challenge/ping.txt
+#
+# Sources:
+# https://community.letsencrypt.org/t/howto-easy-cert-generation-and-renewal-with-nginx/3491
+#
+# Rule for legitimate ACME Challenge requests
+location ^~ /.well-known/acme-challenge/ {
+    default_type "text/plain";
+    # this can be any directory, but this name keeps it clear
+    root /var/www/letsencrypt;
+}
+# Hide /acme-challenge subdirectory and return 404 on all requests.
+# It is somewhat more secure than letting Nginx return 403.
+# Ending slash is important!
+location = /.well-known/acme-challenge/ {
+    return 404;
+}
+EOF
+)"
+    echo "${letsencrypt}" > /etc/nginx/includes/letsencrypt.conf
+
+    sudo mkdir /var/www/letsencrypt
+
+    sudo chown ${username}:${username} -R /etc/nginx/sites-available/
+
+    #Set vaultwarden web file
+    vaultwardenconf="$(cat << EOF
+#
+# HTTP does *soft* redirect to HTTPS
+#
+server {
+    # add [IP-Address:]80 in the next line if you want to limit this to a single interface
+    listen 0.0.0.0:80;
+    server_name ${domain};
+    root /home/data/${domain};
+    index index.php;
+    # change the file name of these logs to include your server name
+    # if hosting many services...
+    access_log /var/log/nginx/${domain}_access.log;
+    error_log /var/log/nginx/${domain}_error.log;
+    include includes/letsencrypt.conf;     # redirect all HTTP traffic to HTTPS.
+    location / {
+        return  302 https://${domain};
+    }
+}
+EOF
+)"
+    echo "${vaultwardenconf}" > /etc/nginx/sites-available/vaultwarden
+
+    #make vaultwarden site live
+    sudo ln /etc/nginx/sites-available/vaultwarden /etc/nginx/sites-enabled/vaultwarden
+
+    #restart nginx
+    sudo service nginx restart
+
+    #run certification
+    sudo letsencrypt certonly --webroot -w /var/www/letsencrypt -d ${domain}
+
+fi
 
 #Compile vaultwarden
 git clone https://github.com/dani-garcia/vaultwarden.git
@@ -150,7 +247,7 @@ WEBSOCKET_ENABLED=true
 
 ## Controls the WebSocket server address and port
 #WEBSOCKET_ADDRESS=127.0.0.1
-WEBSOCKET_ADDRESS=${ip4}
+WEBSOCKET_ADDRESS=${vw_ip}
 WEBSOCKET_PORT=3012
 
 ## Enable extended logging, which shows timestamps and targets in the logs
@@ -299,7 +396,7 @@ DOMAIN=https://${domain}
 ## Rocket specific settings, check Rocket documentation to learn more
 # ROCKET_ENV=staging
 #ROCKET_ADDRESS=127.0.0.1
-ROCKET_ADDRESS=${ip4}
+ROCKET_ADDRESS=${vw_ip}
 ROCKET_PORT=8000
 # ROCKET_TLS={certs="/path/to/certs.pem",key="/path/to/key.pem"}
 
@@ -329,6 +426,79 @@ sudo chown ${username}:${username} /etc/vaultwarden/vaultwarden.conf
 sudo mkdir /var/log/vaultwarden
 sudo chown -R ${username}:${username} /var/log/vaultwarden
 touch /var/log/vaultwarden/error.log
+
+if [ $enable_nginx -eq 1 ]; then
+    #Stop nginx to remove file
+    sudo service nginx stop
+
+    #Remove vaultwarden config to add SSL
+    sudo rm /etc/nginx/sites-enabled/vaultwarden
+    sudo rm /etc/nginx/sites-available/vaultwarden
+    sudo chown ${username}:${username} -R /etc/nginx/sites-available
+
+    touch /etc/nginx/sites-available/vaultwarden
+
+    #Set vaultwarden web file with SSL
+    vaultwardenconf2="$(cat << EOF
+server {
+    listen 80;
+    server_name ${domain};
+    location /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt;
+    }
+    location / {
+        return 301 https://${domain};
+    }
+}
+server {
+    listen 443 ssl http2;
+    server_name ${domain};
+    client_max_body_size 128M;
+    ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers "ECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH";
+    ssl_ecdh_curve secp384r1;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_tickets off;
+    ssl_stapling on;
+    ssl_stapling_verify on;
+    resolver 127.0.0.1 valid=300s;
+    resolver_timeout 5s;
+    add_header X-Content-Type-Options nosniff;
+    add_header Strict-Transport-Security "max-age=63072000; preload";
+    keepalive_timeout 300s;
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header X-Forwarded-Host server_name;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+    location /notifications/hub {
+        proxy_pass http://127.0.0.1:3012;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+    location /notifications/hub/negotiate {
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_pass http://127.0.0.1:8000;
+    }
+}
+EOF
+)"
+    echo "${vaultwardenconf2}" > /etc/nginx/sites-available/vaultwarden
+
+    #reenable vaultwarden site
+    sudo ln /etc/nginx/sites-available/vaultwarden /etc/nginx/sites-enabled/vaultwarden
+
+    #Start nginx with SSL
+    sudo service nginx start
+fi
 
 sudo touch /etc/systemd/system/vaultwarden.service
 sudo chown ${username}:${username} -R /etc/systemd/system/vaultwarden.service
