@@ -1,11 +1,12 @@
-####     Thanks to wh1te909 who I stole (or got inspiration) alot of this script from (first script I have ever written) 
+####     Thanks to wh1te909 who I stole (or got inspiration) alot of this script from (first script I have ever written)
 ####     and https://pieterhollander.nl/post/vaultwarden/ which I followed the steps and converted them to a script
 
+#### Adapted to run on Ubuntu 22.04 with PostgreSQL and (optional) behind a dedicated reverse proxy (configured on a different machine with SSL enabled)
 
-#check if running on ubuntu 20.04
-UBU20=$(grep 20.04 "/etc/"*"release")
-if ! [[ $UBU20 ]]; then
-  echo -ne "\033[0;31mThis script will only work on Ubuntu 20.04\e[0m\n"
+#check if running on ubuntu 22.04
+UBU22=$(grep 22.04 "/etc/"*"release")
+if ! [[ $UBU22 ]]; then
+  echo -ne "\033[0;31mThis script will only work on Ubuntu 22.04\e[0m\n"
   exit 1
 fi
 
@@ -19,23 +20,30 @@ fi
 echo -ne "Enter your created username if you havent done this please do it now, use ctrl+c to cancel this script and do it${NC}: "
 read username
 
-#Set email address
-echo -ne "Enter your Email Address${NC}: "
-read email
-
-#Set Name
-while [[ $name != *[.]* ]]
-do
-echo -ne "Enter your Name Firstname.Lastname${NC}: "
-read name
-done
-
 #Enter domain
 while [[ $domain != *[.]*[.]* ]]
 do
 echo -ne "Enter your Domain${NC}: "
 read domain
 done
+
+#Option to install Nginx+Letsencrypt
+enable_nginx=1
+read -p "Do you wish to install with Nginx and Letsencrypt? [Y/N, Default:Yes] " yn
+case $yn in
+    [Nn]* ) enable_nginx=0;;
+    * ) enable_nginx=1;;
+esac
+
+#Local server IP
+ip4=$(/sbin/ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1)
+echo "Local IP:$ip4"
+
+if [ $enable_nginx -eq 1 ]; then
+    vw_ip="127.0.0.1"
+else
+    vw_ip=$ip4
+fi
 
 admintoken=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 70 | head -n 1)
 
@@ -52,31 +60,39 @@ fi
 
 echo "Running Script"
 
-#Configure GIT
-sudo git config --global user.email "${email}"
-sudo git config --global user.name "${name}"
-
 #install dependencies
 sudo apt update && apt list -u && sudo apt dist-upgrade -y
-sudo apt install dirmngr git libssl-dev pkg-config build-essential curl wget git apt-transport-https ca-certificates curl software-properties-common pwgen nginx-full letsencrypt -y
-curl -sL https://deb.nodesource.com/setup_12.x | sudo bash -
+sudo apt install postgresql postgresql-contrib libpq-dev dirmngr git libssl-dev pkg-config build-essential curl wget apt-transport-https ca-certificates software-properties-common pwgen -y
+if [ $enable_nginx -eq 1 ]; then
+    sudo apt install nginx-full letsencrypt -y
+fi
+curl -sL https://deb.nodesource.com/setup_16.x | sudo bash -
 sudo apt install nodejs -y
 curl https://sh.rustup.rs -sSf | sh
 source ${HOME}/.cargo/env
 
-#Set firewall
-sudo ufw allow OpenSSH
-sudo ufw allow "Nginx Full"
-sudo ufw enable
+### Configure PostgreSQL DB
+# Random password
+postgresql_pwd=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 24 | head -n 1)
+sudo -u postgres psql -c "CREATE DATABASE vaultwarden;"
+sudo -u postgres psql -c "CREATE USER vaultwarden WITH ENCRYPTED PASSWORD '${postgresql_pwd}';"
+sudo -u postgres psql -c "GRANT all privileges ON database vaultwarden TO vaultwarden;"
+echo "Successfully setup PostgreSQL DB vaultwarden with user vaultwarden and password ${postgresql_pwd}"
 
-#####Letsencrypt and web
+if [ $enable_nginx -eq 1 ]; then
+    #Set firewall
+    sudo ufw allow OpenSSH
+    sudo ufw allow "Nginx Full"
+    sudo ufw enable
 
-#Make directory
-sudo mkdir /etc/nginx/includes
-sudo chown ${username}:${username} -R /etc/nginx/includes
+    #####Letsencrypt and web
 
-#Set Letsencrypt file
-letsencrypt="$(cat << EOF
+    #Make directory
+    sudo mkdir /etc/nginx/includes
+    sudo chown ${username}:${username} -R /etc/nginx/includes
+
+    #Set Letsencrypt file
+    letsencrypt="$(cat << EOF
 #############################################################################
 # Configuration file for Let's Encrypt ACME Challenge location
 # This file is already included in listen_xxx.conf files.
@@ -106,70 +122,68 @@ location ^~ /.well-known/acme-challenge/ {
 location = /.well-known/acme-challenge/ {
     return 404;
 }
-
 EOF
 )"
-echo "${letsencrypt}" > /etc/nginx/includes/letsencrypt.conf
+    echo "${letsencrypt}" > /etc/nginx/includes/letsencrypt.conf
 
-sudo mkdir /var/www/letsencrypt
+    sudo mkdir /var/www/letsencrypt
 
-sudo chown ${username}:${username} -R /etc/nginx/sites-available/
+    sudo chown ${username}:${username} -R /etc/nginx/sites-available/
 
-#Set vaultwarden web file
-vaultwardenconf="$(cat << EOF
+    #Set vaultwarden web file
+    vaultwardenconf="$(cat << EOF
 #
 # HTTP does *soft* redirect to HTTPS
 #
 server {
     # add [IP-Address:]80 in the next line if you want to limit this to a single interface
     listen 0.0.0.0:80;
-   server_name ${domain};
+    server_name ${domain};
     root /home/data/${domain};
     index index.php;
-
     # change the file name of these logs to include your server name
     # if hosting many services...
     access_log /var/log/nginx/${domain}_access.log;
-    error_log /var/log/nginx/${domain}_error.log;  
+    error_log /var/log/nginx/${domain}_error.log;
     include includes/letsencrypt.conf;     # redirect all HTTP traffic to HTTPS.
     location / {
         return  302 https://${domain};
     }
 }
-
 EOF
 )"
-echo "${vaultwardenconf}" > /etc/nginx/sites-available/vaultwarden
+    echo "${vaultwardenconf}" > /etc/nginx/sites-available/vaultwarden
 
-#make vaultwarden site live
-sudo ln /etc/nginx/sites-available/vaultwarden /etc/nginx/sites-enabled/vaultwarden
+    #make vaultwarden site live
+    sudo ln /etc/nginx/sites-available/vaultwarden /etc/nginx/sites-enabled/vaultwarden
 
-#restart nginx
-sudo service nginx restart
+    #restart nginx
+    sudo service nginx restart
 
-#run certification
-sudo letsencrypt certonly --webroot -w /var/www/letsencrypt -d ${domain}
+    #run certification
+    sudo letsencrypt certonly --webroot -w /var/www/letsencrypt -d ${domain}
+
+fi
 
 #Compile vaultwarden
 git clone https://github.com/dani-garcia/vaultwarden.git
 cd vaultwarden/
 git checkout
-cargo build --features sqlite --release
+#cargo build --features sqlite --release
+cargo build --features postgresql --release
 cd ..
 
 #Download precompiled webvault
-VWRELEASE=$(curl -s https://api.github.com/repos/dani-garcia/bw_web_builds/releases/latest \
-| grep "tag_name" \
-| awk '{print substr($2, 2, length($2)-3) }') \
+VWRELEASE=$(curl -s https://api.github.com/repos/dani-garcia/bw_web_builds/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 
 wget https://github.com/dani-garcia/bw_web_builds/releases/download/$VWRELEASE/bw_web_$VWRELEASE.tar.gz
 
-tar -xzf bw_web_$VWRELEASE.tar.gz 
+tar -xzf bw_web_$VWRELEASE.tar.gz
 
 #Create vaultwarden folder and copy
 sudo mkdir /opt/vaultwarden
-sudo cp -r ~/vaultwarden/target/release/vaultwarden /opt/vaultwarden
-sudo mv ~/web-vault /opt/vaultwarden/web-vault
+sudo cp -r vaultwarden/target/release/vaultwarden /opt/vaultwarden
+sudo mv web-vault /opt/vaultwarden/web-vault
 sudo mkdir /opt/vaultwarden/data
 sudo mkdir /etc/vaultwarden
 sudo chown ${username}:${username} -R /etc/vaultwarden
@@ -200,7 +214,9 @@ vaultwardenconf="$(cat << EOF
 ## - https://docs.diesel.rs/diesel/pg/struct.PgConnection.html
 ## - https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
 ## DATABASE_URL=mysql://vwarden:${mysqlpwd}@localhost:3306/vwarden
-
+#DATABASE_URL=postgresql://vwarden:${mysqlpwd}@localhost:3306/vwarden
+#DATABASE_URL=postgresql://[[user]:[password]@]host[:port][/database]
+DATABASE_URL=postgresql://vaultwarden:${postgresql_pwd}@localhost:5432/vaultwarden
 
 ## Individual folders, these override %DATA_FOLDER%
 # RSA_KEY_FILENAME=data/rsa_key
@@ -230,8 +246,9 @@ vaultwardenconf="$(cat << EOF
 WEBSOCKET_ENABLED=true
 
 ## Controls the WebSocket server address and port
-WEBSOCKET_ADDRESS=127.0.0.1
-#WEBSOCKET_PORT=3012
+#WEBSOCKET_ADDRESS=127.0.0.1
+WEBSOCKET_ADDRESS=${vw_ip}
+WEBSOCKET_PORT=3012
 
 ## Enable extended logging, which shows timestamps and targets in the logs
 # EXTENDED_LOGGING=true
@@ -367,7 +384,7 @@ DOMAIN=https://${domain}
 ## Authenticator Settings
 ## Disable authenticator time drifted codes to be valid.
 ## TOTP codes of the previous and next 30 seconds will be invalid
-## 
+##
 ## According to the RFC6238 (https://tools.ietf.org/html/rfc6238),
 ## we allow by default the TOTP code which was valid one step back and one in the future.
 ## This can however allow attackers to be a bit more lucky with there attempts because there are 3 valid codes.
@@ -378,7 +395,8 @@ DOMAIN=https://${domain}
 
 ## Rocket specific settings, check Rocket documentation to learn more
 # ROCKET_ENV=staging
-ROCKET_ADDRESS=127.0.0.1
+#ROCKET_ADDRESS=127.0.0.1
+ROCKET_ADDRESS=${vw_ip}
 ROCKET_PORT=8000
 # ROCKET_TLS={certs="/path/to/certs.pem",key="/path/to/key.pem"}
 
@@ -409,37 +427,33 @@ sudo mkdir /var/log/vaultwarden
 sudo chown -R ${username}:${username} /var/log/vaultwarden
 touch /var/log/vaultwarden/error.log
 
-#Stop nginx to remove file
-sudo service nginx stop
+if [ $enable_nginx -eq 1 ]; then
+    #Stop nginx to remove file
+    sudo service nginx stop
 
-#Remove vaultwarden config to add SSL
-sudo rm /etc/nginx/sites-enabled/vaultwarden
-sudo rm /etc/nginx/sites-available/vaultwarden
-sudo chown ${username}:${username} -R /etc/nginx/sites-available
+    #Remove vaultwarden config to add SSL
+    sudo rm /etc/nginx/sites-enabled/vaultwarden
+    sudo rm /etc/nginx/sites-available/vaultwarden
+    sudo chown ${username}:${username} -R /etc/nginx/sites-available
 
-touch /etc/nginx/sites-available/vaultwarden
+    touch /etc/nginx/sites-available/vaultwarden
 
-#Set vaultwarden web file with SSL
-vaultwardenconf2="$(cat << EOF
+    #Set vaultwarden web file with SSL
+    vaultwardenconf2="$(cat << EOF
 server {
     listen 80;
     server_name ${domain};
-
     location /.well-known/acme-challenge/ {
         root /var/www/letsencrypt;
     }
-
     location / {
         return 301 https://${domain};
     }
 }
-
 server {
     listen 443 ssl http2;
     server_name ${domain};
-
     client_max_body_size 128M;
-
     ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
@@ -455,7 +469,6 @@ server {
     add_header X-Content-Type-Options nosniff;
     add_header Strict-Transport-Security "max-age=63072000; preload";
     keepalive_timeout 300s;
-
     location / {
         proxy_pass http://127.0.0.1:8000;
         proxy_set_header X-Forwarded-Host server_name;
@@ -463,13 +476,11 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
-
     location /notifications/hub {
         proxy_pass http://127.0.0.1:3012;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
     }
-
     location /notifications/hub/negotiate {
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
@@ -480,13 +491,14 @@ server {
 }
 EOF
 )"
-echo "${vaultwardenconf2}" > /etc/nginx/sites-available/vaultwarden
+    echo "${vaultwardenconf2}" > /etc/nginx/sites-available/vaultwarden
 
-#reenable vaultwarden site
-sudo ln /etc/nginx/sites-available/vaultwarden /etc/nginx/sites-enabled/vaultwarden
+    #reenable vaultwarden site
+    sudo ln /etc/nginx/sites-available/vaultwarden /etc/nginx/sites-enabled/vaultwarden
 
-#Start nginx with SSL
-sudo service nginx start
+    #Start nginx with SSL
+    sudo service nginx start
+fi
 
 sudo touch /etc/systemd/system/vaultwarden.service
 sudo chown ${username}:${username} -R /etc/systemd/system/vaultwarden.service
@@ -603,12 +615,4 @@ sudo systemctl restart fail2ban
 printf >&2 "Please go to admin url: https://${domain}/admin\n\n"
 printf >&2 "Enter ${admintoken} to gain access, please save this somewhere!!\n\n"
 
-echo "Press any key to finish install"
-while [ true ] ; do
-read -t 3 -n 1
-if [ $? = 0 ] ; then
-exit ;
-else
-echo "waiting for the keypress"
-fi
-done
+echo "Installation complete!"
