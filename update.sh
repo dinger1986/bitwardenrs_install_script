@@ -2,8 +2,8 @@
 ####     and https://pieterhollander.nl/post/bitwarden/ which I followed the steps and converted them to a script
 
 #check if running on ubuntu 20.04
-UBU20=$(grep 20.04 "/etc/"*"release")
-if ! [[ $UBU20 ]]; then
+UBU22=$(grep 22.04 "/etc/"*"release")
+if ! [[ $UBU22 ]]; then
   echo -ne "\033[0;31mThis script will only work on Ubuntu 20.04\e[0m\n"
   exit 1
 fi
