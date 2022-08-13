@@ -7,6 +7,8 @@ Please note this is an unofficial install script and support requests for the in
 
 This installs BitWarden_RS on Ubuntu 22.04 with SQLite, configures firewall and enables fail2ban.
 
+You can use Hetzner to test this with a $20 credit using this referal code https://hetzner.cloud/?ref=p6iUr7jEXmoB
+
 ## Hardware Requirements 
 
 - 2GB RAM (perhaps overspec'd for running BitWarden_RS but much less compile will crash)
